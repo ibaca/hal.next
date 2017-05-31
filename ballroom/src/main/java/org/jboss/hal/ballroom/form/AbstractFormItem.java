@@ -28,7 +28,7 @@ import com.google.gwt.event.shared.GwtEvent;
 import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.event.shared.SimpleEventBus;
 import com.google.gwt.user.client.ui.Focusable;
-import elemental.dom.Element;
+import elemental2.dom.HTMLElement;
 import org.jboss.hal.ballroom.Attachable;
 import org.jboss.hal.ballroom.dialog.Dialog;
 import org.jboss.hal.ballroom.form.Form.State;
@@ -139,7 +139,7 @@ public abstract class AbstractFormItem<T> implements FormItem<T> {
     // ------------------------------------------------------ element and appearance
 
     @Override
-    public Element asElement(final State state) {
+    public HTMLElement asElement(final State state) {
         if (appearances.containsKey(state)) {
             return appearances.get(state).asElement();
         } else {

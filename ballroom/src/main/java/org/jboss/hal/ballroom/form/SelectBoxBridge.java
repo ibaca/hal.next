@@ -20,6 +20,7 @@ import java.util.List;
 import elemental.dom.Element;
 import elemental.js.events.JsEvent;
 import elemental.js.util.JsArrayOf;
+import elemental2.dom.HTMLSelectElement;
 import jsinterop.annotations.JsFunction;
 import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsOverlay;
@@ -68,7 +69,7 @@ public class SelectBoxBridge {
     public static class Single {
 
         @JsMethod(namespace = GLOBAL, name = "$")
-        public native static Single element(Element element);
+        public native static Single element(HTMLSelectElement element);
 
         public native String val();
 
