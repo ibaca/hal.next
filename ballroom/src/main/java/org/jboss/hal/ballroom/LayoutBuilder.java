@@ -15,35 +15,32 @@
  */
 package org.jboss.hal.ballroom;
 
-import org.jboss.gwt.elemento.core.Elements;
+import elemental2.dom.HTMLDivElement;
+import org.jboss.gwt.elemento.core.builder.HtmlContentBuilder;
 import org.jboss.hal.resources.CSS;
 
+import static org.jboss.gwt.elemento.core.Elements.div;
 import static org.jboss.hal.resources.CSS.*;
 
 /**
+ * Builder for bootstrap grid system. Always starts with a initial row. If you need more than one row, use several
+ * layout builders and append them to a parent div.
+ *
  * @author Harald Pehl
  */
-public class LayoutBuilder extends Elements.CoreBuilder<LayoutBuilder> {
+public class LayoutBuilder extends HtmlContentBuilder<HTMLDivElement> {
 
     public LayoutBuilder() {
-        super("hal.layoutBuilder");
+        super(div().css(row).asElement());
     }
 
     @Override
-    protected LayoutBuilder that() {
+    public LayoutBuilder that() {
         return this;
     }
 
     /**
-     * Starts a row. You always need at least one row. Rows should contain columns only. Must be closed with {@link
-     * #end()}.
-     */
-    public LayoutBuilder row() {
-        return div().css(row);
-    }
-
-    /**
-     * Starts a column. Columns should contain (sub)headers, elements or tabs. Must be closed with {@link #end()}.
+     * Adds a column. Columns should contain (sub)headers, elements or tabs.
      */
     public LayoutBuilder column() {
         return column(0, 12);
@@ -54,14 +51,8 @@ public class LayoutBuilder extends Elements.CoreBuilder<LayoutBuilder> {
     }
 
     public LayoutBuilder column(int offset, int columns) {
-        return div().css(rowCss(offset, columns));
-    }
-
-    /**
-     * Adds a h1 header. Needs to be closed!
-     */
-    public LayoutBuilder header(String title) {
-        return h(1).textContent(title);
+        asElement().appendChild(div().css(rowCss(offset, columns)).asElement());
+        return that();
     }
 
     private String rowCss(int offset, int columns) {

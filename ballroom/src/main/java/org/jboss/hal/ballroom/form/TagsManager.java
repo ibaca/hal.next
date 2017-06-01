@@ -18,10 +18,10 @@ package org.jboss.hal.ballroom.form;
 import java.util.List;
 
 import elemental.client.Browser;
-import elemental.dom.Element;
 import elemental.js.events.JsEvent;
 import elemental.js.html.JsInt16Array;
 import elemental.js.util.JsArrayOf;
+import elemental2.dom.HTMLInputElement;
 import jsinterop.annotations.JsFunction;
 import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsOverlay;
@@ -86,7 +86,7 @@ class TagsManager {
     public static class Bridge {
 
         @JsMethod(namespace = GLOBAL, name = "$")
-        public native static Bridge element(Element element);
+        public native static Bridge element(HTMLInputElement element);
 
         public native void on(String event, RefreshListener refreshListener);
 
