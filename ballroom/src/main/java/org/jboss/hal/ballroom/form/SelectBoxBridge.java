@@ -17,9 +17,9 @@ package org.jboss.hal.ballroom.form;
 
 import java.util.List;
 
-import elemental.dom.Element;
 import elemental.js.events.JsEvent;
 import elemental.js.util.JsArrayOf;
+import elemental2.dom.HTMLElement;
 import elemental2.dom.HTMLSelectElement;
 import jsinterop.annotations.JsFunction;
 import jsinterop.annotations.JsMethod;
@@ -105,7 +105,7 @@ public class SelectBoxBridge {
     public static class Multi {
 
         @JsMethod(namespace = GLOBAL, name = "$")
-        public native static Multi element(Element element);
+        public native static Multi element(HTMLElement element);
 
         public native JsArrayOf<String> val();
 

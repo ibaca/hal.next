@@ -18,6 +18,7 @@ package org.jboss.hal.ballroom.autocomplete;
 import elemental.client.Browser;
 import elemental.dom.Element;
 import elemental.events.Event;
+import elemental2.dom.DomGlobal;
 import jsinterop.annotations.JsConstructor;
 import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsType;
@@ -114,7 +115,7 @@ public class AutoComplete implements SuggestHandler, Attachable {
 
     @Override
     public void close() {
-        Elements.stream(Browser.getDocument().querySelectorAll(autocompleteSuggestions))
+        Elements.stream(DomGlobal.document.querySelectorAll(autocompleteSuggestions))
                 .filter(Elements::isVisible)
                 .forEach(element -> Elements.setVisible(element, false));
     }

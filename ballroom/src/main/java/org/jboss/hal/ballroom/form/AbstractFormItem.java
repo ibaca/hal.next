@@ -15,6 +15,7 @@
  */
 package org.jboss.hal.ballroom.form;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -103,6 +104,7 @@ public abstract class AbstractFormItem<T> implements FormItem<T> {
     private SuggestHandler suggestHandler;
     private final List<FormItemValidation<T>> validationHandlers;
     private final List<ResolveExpressionHandler> resolveExpressionHandlers;
+    private final List<com.google.web.bindery.event.shared.HandlerRegistration> handlers;
 
     AbstractFormItem(final String name, final String label, final String hint) {
         this.name = name;
@@ -125,6 +127,7 @@ public abstract class AbstractFormItem<T> implements FormItem<T> {
         this.validationHandlers = new LinkedList<>();
         this.validationHandlers.addAll(defaultValidationHandlers());
         this.resolveExpressionHandlers = new LinkedList<>();
+        this.handlers = new ArrayList<>();
     }
 
     protected void addAppearance(State state, Appearance<T> appearance) {
@@ -133,6 +136,13 @@ public abstract class AbstractFormItem<T> implements FormItem<T> {
         if (hint != null) {
             appearance.apply(HINT, hint);
         }
+    }
+
+    /**
+     * Store the event handler registration to remove them in {@link #detach()}.
+     */
+    protected void remember(com.google.web.bindery.event.shared.HandlerRegistration handler) {
+        handlers.add(handler);
     }
 
 
@@ -180,6 +190,10 @@ public abstract class AbstractFormItem<T> implements FormItem<T> {
             ((Attachable) suggestHandler).detach();
         }
         appearances.values().forEach(Appearance::detach);
+        for (com.google.web.bindery.event.shared.HandlerRegistration handler : handlers) {
+            handler.removeHandler();
+        }
+        handlers.clear();
     }
 
     private void apply(Decoration decoration) {
