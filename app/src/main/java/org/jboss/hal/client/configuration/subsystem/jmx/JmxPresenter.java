@@ -130,18 +130,15 @@ public class JmxPresenter extends ApplicationFinderPresenter<JmxPresenter.MyView
         } else {
             changedValues.remove(HANDLER);
             Metadata metadata = metadataRegistry.lookup(AUDIT_LOG_TEMPLATE);
-            Function[] functions = {
+            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
+                            @Override
+                            public void onSuccess(final FunctionContext context) {
+                                reload();
+                            }
+                        },
                     new HandlerFunctions.SaveAuditLog(dispatcher, statementContext, changedValues, metadata),
                     new HandlerFunctions.ReadHandlers(dispatcher, statementContext),
-                    new HandlerFunctions.MergeHandler(dispatcher, statementContext, new HashSet<>(handler))
-            };
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                    new SuccessfulOutcome(getEventBus(), resources) {
-                        @Override
-                        public void onSuccess(final FunctionContext context) {
-                            reload();
-                        }
-                    }, functions);
+                    new HandlerFunctions.MergeHandler(dispatcher, statementContext, new HashSet<>(handler)));
         }
     }
 }

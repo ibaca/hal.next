@@ -15,6 +15,23 @@
  */
 package org.jboss.hal.core.finder;
 
+import static java.lang.Math.min;
+import static java.util.stream.Collectors.toList;
+import static org.jboss.gwt.elemento.core.Elements.div;
+import static org.jboss.hal.ballroom.Skeleton.applicationOffset;
+import static org.jboss.hal.resources.CSS.column;
+import static org.jboss.hal.resources.CSS.finder;
+import static org.jboss.hal.resources.CSS.finderPreview;
+import static org.jboss.hal.resources.CSS.row;
+import static org.jboss.hal.resources.CSS.vh;
+import static org.jboss.hal.resources.Ids.FINDER;
+
+import com.google.common.collect.Iterables;
+import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.web.bindery.event.shared.EventBus;
+import com.gwtplatform.mvp.client.proxy.PlaceManager;
+import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
+import elemental2.dom.HTMLElement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,13 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Provider;
-
-import com.google.common.collect.Iterables;
-import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.web.bindery.event.shared.EventBus;
-import com.gwtplatform.mvp.client.proxy.PlaceManager;
-import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
-import elemental2.dom.HTMLElement;
 import org.jboss.gwt.elemento.core.Elements;
 import org.jboss.gwt.elemento.core.IsElement;
 import org.jboss.gwt.flow.Async;
@@ -49,13 +59,6 @@ import org.jboss.hal.spi.Footer;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.lang.Math.min;
-import static java.util.stream.Collectors.toList;
-import static org.jboss.gwt.elemento.core.Elements.div;
-import static org.jboss.hal.ballroom.Skeleton.applicationOffset;
-import static org.jboss.hal.resources.CSS.*;
-import static org.jboss.hal.resources.Ids.FINDER;
 
 /**
  * The one and only finder which is shared across all different top level categories in HAL. The very same finder
@@ -109,7 +112,6 @@ public class Finder implements IsElement, Attachable {
         }
     }
 
-
     private class RefreshFunction implements Function<FunctionContext> {
 
         private final FinderSegment segment;
@@ -151,7 +153,6 @@ public class Finder implements IsElement, Attachable {
         }
     }
 
-
     static final String DATA_BREADCRUMB = "breadcrumb";
     static final String DATA_FILTER = "filter";
     /**
@@ -175,7 +176,6 @@ public class Finder implements IsElement, Attachable {
     private final Map<String, PreviewContent> initialPreviewsByToken;
     private final HTMLElement root;
     private final HTMLElement previewColumn;
-
 
     // ------------------------------------------------------ ui
 
@@ -230,7 +230,6 @@ public class Finder implements IsElement, Attachable {
         int previewSize = MAX_COLUMNS - 2 * min((int) visibleColumns, MAX_VISIBLE_COLUMNS);
         previewColumn.className = finderPreview + " " + column(previewSize);
     }
-
 
     // ------------------------------------------------------ internal API
 
@@ -433,7 +432,6 @@ public class Finder implements IsElement, Attachable {
         return securityContextRegistry;
     }
 
-
     // ------------------------------------------------------ public API
 
     /**
@@ -484,21 +482,21 @@ public class Finder implements IsElement, Attachable {
                 functions[index] = new RefreshFunction(segment);
                 index++;
             }
-            new Async<FunctionContext>(progress.get())
-                    .waterfall(new FunctionContext(), new Outcome<FunctionContext>() {
+            Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                         @Override
-                        public void onFailure(final FunctionContext context) {}
+                        public void onFailure(final FunctionContext context1) {}
 
                         @Override
-                        public void onSuccess(final FunctionContext context) {
-                            if (!context.emptyStack()) {
-                                FinderColumn column = context.pop();
-                                if (column.selectedRow() != null) {
-                                    column.selectedRow().click();
+                        public void onSuccess(final FunctionContext context1) {
+                            if (!context1.emptyStack()) {
+                                FinderColumn column1 = context1.pop();
+                                if (column1.selectedRow() != null) {
+                                    column1.selectedRow().click();
                                 }
                             }
                         }
-                    }, functions);
+                    },
+                    functions);
         }
     }
 
@@ -554,29 +552,29 @@ public class Finder implements IsElement, Attachable {
                 functions[index] = new SelectFunction(new FinderSegment(segment.getColumnId(), segment.getItemId()));
                 index++;
             }
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(), new Outcome<FunctionContext>() {
+            Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                 @Override
-                public void onFailure(final FunctionContext context) {
+                public void onFailure(final FunctionContext context1) {
                     if (Finder.this.context.getPath().isEmpty()) {
                         fallback.run();
 
-                    } else if (!context.emptyStack()) {
-                        FinderColumn column = context.pop();
+                    } else if (!context1.emptyStack()) {
+                        FinderColumn column1 = context1.pop();
                         markHiddenColumns(); // only in case of an error!
-                        f1nally(column);
+                        f1nally(column1);
                     }
                 }
 
                 @Override
-                public void onSuccess(final FunctionContext context) {
-                    FinderColumn column = context.pop();
-                    f1nally(column);
+                public void onSuccess(final FunctionContext context1) {
+                    FinderColumn column1 = context1.pop();
+                    f1nally(column1);
                 }
 
                 @SuppressWarnings("SpellCheckingInspection")
-                private void f1nally(FinderColumn column) {
-                    column.asElement().focus();
-                    column.refresh(RefreshMode.RESTORE_SELECTION);
+                private void f1nally(FinderColumn column1) {
+                    column1.asElement().focus();
+                    column1.refresh(RefreshMode.RESTORE_SELECTION);
                 }
             }, functions);
         }

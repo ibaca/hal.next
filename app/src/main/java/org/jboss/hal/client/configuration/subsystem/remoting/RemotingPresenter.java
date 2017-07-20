@@ -463,8 +463,7 @@ public class RemotingPresenter
                 }
         };
 
-        new Async<FunctionContext>(progress.get())
-                .waterfall(new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
+        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
                     @Override
                     public void onSuccess(final FunctionContext context) {
                         MessageEvent.fire(getEventBus(),

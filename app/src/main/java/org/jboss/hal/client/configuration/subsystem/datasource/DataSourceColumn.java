@@ -254,7 +254,7 @@ public class DataSourceColumn extends FinderColumn<DataSource> {
             }
         };
 
-        new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(), outcome,
+        Async.series(progress.get(), new FunctionContext(), outcome,
                 readDataSources,
                 new JdbcDriverFunctions.ReadConfiguration(crud),
                 new TopologyFunctions.RunningServersQuery(environment, dispatcher,

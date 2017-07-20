@@ -286,9 +286,7 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
         // show the loading indicator if the dmr operation takes too long
         double timeoutHandle = setTimeout((o) -> Elements.setVisible(loadingSection, true),
                 UIConstants.MEDIUM_TIMEOUT);
-        new Async<FunctionContext>(progress.get()).waterfall(
-                new FunctionContext(),
-                new Outcome<FunctionContext>() {
+        Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                     @Override
                     public void onFailure(final FunctionContext context) {
                         clearTimeout(timeoutHandle);
@@ -305,9 +303,9 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
 
                         List<Host> hosts = context.get(TopologyFunctions.HOSTS);
                         List<ServerGroup> serverGroups = context.get(TopologyFunctions.SERVER_GROUPS);
-                        List<Server> servers = context.get(TopologyFunctions.SERVERS);
+                        List<Server> servers1 = context.get(TopologyFunctions.SERVERS);
 
-                        topologySection.appendChild(buildTable(hosts, serverGroups, servers));
+                        topologySection.appendChild(buildTable(hosts, serverGroups, servers1));
                         Elements.setVisible(topologySection, true);
                         adjustTdHeight();
 
@@ -325,10 +323,10 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
                                     .ifPresent(serverGroup -> serverGroupDetails(serverGroup));
                         }
                         if (serverName != null) {
-                            servers.stream()
-                                    .filter(server -> serverName.equals(server.getName()))
+                            servers1.stream()
+                                    .filter(server1 -> serverName.equals(server1.getName()))
                                     .findAny()
-                                    .ifPresent(server -> serverDetails(server));
+                                    .ifPresent(server11 -> serverDetails(server11));
                         }
                     }
                 },
@@ -337,7 +335,7 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
     }
 
     private void updateServer(Server server) {
-        new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(), new Outcome<FunctionContext>() {
+        Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                     @Override
                     public void onFailure(final FunctionContext context) {
                         MessageEvent.fire(eventBus,
@@ -373,12 +371,10 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
                         }
                     }
                 },
-                // TODO Include function to read server boot errors
                 new TopologyFunctions.HostWithServerConfigs(server.getHost(), dispatcher),
                 new TopologyFunctions.HostStartedServers(dispatcher),
                 new TopologyFunctions.ServerGroupWithServerConfigs(server.getServerGroup(), dispatcher),
-                new TopologyFunctions.ServerGroupStartedServers(dispatcher)
-        );
+                new TopologyFunctions.ServerGroupStartedServers(dispatcher));
     }
 
 

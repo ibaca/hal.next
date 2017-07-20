@@ -71,7 +71,7 @@ public class PathsAutoComplete extends AutoComplete {
         if (environment.isStandalone() || statementContext.selectedProfile() == null) {
             operation = defaultOperation();
         } else {
-            new Async<FunctionContext>(Progress.NOOP).single(new FunctionContext(),
+            Async.single(Progress.NOOP, new FunctionContext(),
                     new Outcome<FunctionContext>() {
                         @Override
                         public void onFailure(final FunctionContext context) {

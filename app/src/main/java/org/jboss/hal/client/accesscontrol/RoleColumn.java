@@ -302,19 +302,17 @@ public class RoleColumn extends FinderColumn<Role> {
                 functions.add(new AddRoleMapping(dispatcher, transientRole, status -> status == 404));
                 functions.add(new ModifyIncludeAll(dispatcher, transientRole, true));
             }
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                    new SuccessfulOutcome(eventBus, resources) {
-                        @Override
-                        public void onSuccess(final FunctionContext context) {
-                            MessageEvent.fire(eventBus,
-                                    Message.success(resources.messages().addResourceSuccess(typeName, name)));
-                            accessControl.reload(() -> {
-                                refresh(Ids.role(name));
-                                eventBus.fireEvent(new RolesChangedEvent());
-                            });
-                        }
-                    },
-                    functions.toArray(new Function[functions.size()]));
+            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
+                            @Override
+                            public void onSuccess(final FunctionContext context) {
+                                MessageEvent.fire(eventBus,
+                                        Message.success(resources.messages().addResourceSuccess(typeName, name)));
+                                accessControl.reload(() -> {
+                                    refresh(Ids.role(name));
+                                    eventBus.fireEvent(new RolesChangedEvent());
+                                });
+                            }
+                        }, functions.toArray(new Function[functions.size()]));
         }).show();
     }
 
@@ -333,22 +331,22 @@ public class RoleColumn extends FinderColumn<Role> {
         ModelNode modelNode = new ModelNode();
         modelNode.get(INCLUDE_ALL).set(role.isIncludeAll());
         new ModifyResourceDialog(resources.messages().modifyResourceTitle(resources.constants().role()),
-                form, (frm, changedValues) ->
-                new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                        new SuccessfulOutcome(eventBus, resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                MessageEvent.fire(eventBus, Message.success(resources.messages()
-                                        .modifyResourceSuccess(resources.constants().role(), role.getName())));
-                                accessControl.reload(() -> {
-                                    refresh(role.getId());
-                                    eventBus.fireEvent(new RolesChangedEvent());
-                                });
-                            }
-                        },
-                        new CheckRoleMapping(dispatcher, role),
-                        new AddRoleMapping(dispatcher, role, status -> status == 404),
-                        new ModifyIncludeAll(dispatcher, role, frm.getModel().get(INCLUDE_ALL).asBoolean())))
+                form, (frm, changedValues) -> {
+            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
+                                @Override
+                                public void onSuccess(final FunctionContext context) {
+                                    MessageEvent.fire(eventBus, Message.success(resources.messages()
+                                            .modifyResourceSuccess(resources.constants().role(), role.getName())));
+                                    accessControl.reload(() -> {
+                                        refresh(role.getId());
+                                        eventBus.fireEvent(new RolesChangedEvent());
+                                    });
+                                }
+                            },
+                    new CheckRoleMapping(dispatcher, role),
+                    new AddRoleMapping(dispatcher, role, status -> status == 404),
+                    new ModifyIncludeAll(dispatcher, role, frm.getModel().get(INCLUDE_ALL).asBoolean()));
+        })
                 .show(modelNode);
         form.getFormItem(NAME).setValue(role.getName());
     }
@@ -387,18 +385,17 @@ public class RoleColumn extends FinderColumn<Role> {
                 functions.add(new AddRoleMapping(dispatcher, role, status -> status == 404));
                 functions.add(new ModifyIncludeAll(dispatcher, role, includesAll));
             }
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                    new SuccessfulOutcome(eventBus, resources) {
-                        @Override
-                        public void onSuccess(final FunctionContext context) {
-                            MessageEvent.fire(eventBus,
-                                    Message.success(resources.messages().modifyResourceSuccess(type, role.getName())));
-                            accessControl.reload(() -> {
-                                refresh(role.getId());
-                                eventBus.fireEvent(new RolesChangedEvent());
-                            });
-                        }
-                    },
+            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
+                            @Override
+                            public void onSuccess(final FunctionContext context) {
+                                MessageEvent.fire(eventBus,
+                                        Message.success(resources.messages().modifyResourceSuccess(type, role.getName())));
+                                accessControl.reload(() -> {
+                                    refresh(role.getId());
+                                    eventBus.fireEvent(new RolesChangedEvent());
+                                });
+                            }
+                        },
                     functions.toArray(new Function[functions.size()]));
         }).show(modelNode);
     }
@@ -416,8 +413,7 @@ public class RoleColumn extends FinderColumn<Role> {
         functions.add(new RemoveRoleMapping(dispatcher, role, status -> status == 200));
         functions.add(new RemoveScopedRole(dispatcher, role));
 
-        new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                new SuccessfulOutcome(eventBus, resources) {
+        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
                     @Override
                     public void onSuccess(final FunctionContext context) {
                         MessageEvent.fire(eventBus,

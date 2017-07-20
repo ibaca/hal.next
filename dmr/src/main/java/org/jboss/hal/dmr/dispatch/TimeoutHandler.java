@@ -15,20 +15,20 @@
  */
 package org.jboss.hal.dmr.dispatch;
 
-import java.util.function.Predicate;
+import static org.jboss.hal.dmr.dispatch.Dispatcher.NOOP_EXCEPTIONAL_CALLBACK;
+import static org.jboss.hal.dmr.dispatch.Dispatcher.NOOP_FAILED_CALLBACK;
 
+import java.util.function.Predicate;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Outcome;
-import org.jboss.hal.dmr.ModelNode;
+import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.dmr.Composite;
 import org.jboss.hal.dmr.CompositeResult;
+import org.jboss.hal.dmr.ModelNode;
 import org.jboss.hal.dmr.Operation;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.jboss.hal.dmr.dispatch.Dispatcher.NOOP_EXCEPTIONAL_CALLBACK;
-import static org.jboss.hal.dmr.dispatch.Dispatcher.NOOP_FAILED_CALLBACK;
 
 /**
  * Executes a DMR operation until a specific condition is met or a timeout occurs.
@@ -50,7 +50,6 @@ public class TimeoutHandler {
         void onTimeout();
     }
 
-
     private static class TimeoutContext {
 
         final long start;
@@ -62,7 +61,6 @@ public class TimeoutHandler {
             logger.debug("Start timeout handler @ {}", start); //NON-NLS
         }
     }
-
 
     private static final int PERIOD = 500;
     @NonNls private static final Logger logger = LoggerFactory.getLogger(TimeoutHandler.class);
@@ -91,7 +89,7 @@ public class TimeoutHandler {
      * receives the result of the operation.
      */
     public void execute(final Operation operation, final Predicate<ModelNode> predicate, final Callback callback) {
-        new Async<TimeoutContext>().whilst(new TimeoutContext(),
+        Async.whilst(Progress.NOOP, new TimeoutContext(),
                 (context) -> !timeout(context) && !context.conditionSatisfied,
                 new Outcome<TimeoutContext>() {
                     @Override
@@ -123,7 +121,7 @@ public class TimeoutHandler {
      */
     public void execute(final Composite composite, final Predicate<CompositeResult> predicate,
             final Callback callback) {
-        new Async<TimeoutContext>().whilst(new TimeoutContext(),
+        Async.whilst(Progress.NOOP, new TimeoutContext(),
                 (context) -> !timeout(context) && !context.conditionSatisfied,
                 new Outcome<TimeoutContext>() {
                     @Override

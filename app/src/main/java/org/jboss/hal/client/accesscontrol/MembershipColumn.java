@@ -247,25 +247,24 @@ public class MembershipColumn extends FinderColumn<Assignment> {
         return column -> {
             Role role = findRole(getFinder().getContext().getPath());
             if (role != null) {
-                new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                        new SuccessfulOutcome(eventBus, resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                String type = principal.getType() == Principal.Type.USER
-                                        ? resources.constants().user()
-                                        : resources.constants().group();
-                                SafeHtml message = include
-                                        ? resources.messages().assignmentIncludeSuccess(type, principal.getName())
-                                        : resources.messages().assignmentExcludeSuccess(type, principal.getName());
-                                MessageEvent.fire(eventBus, Message.success(message));
-                                accessControl.reload(() -> {
-                                    refresh(RefreshMode.RESTORE_SELECTION);
-                                    if (isCurrentUser(principal)) {
-                                        eventBus.fireEvent(new UserChangedEvent());
+                Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
+                                    @Override
+                                    public void onSuccess(final FunctionContext context) {
+                                        String type = principal.getType() == Principal.Type.USER
+                                                ? resources.constants().user()
+                                                : resources.constants().group();
+                                        SafeHtml message = include
+                                                ? resources.messages().assignmentIncludeSuccess(type, principal.getName())
+                                                : resources.messages().assignmentExcludeSuccess(type, principal.getName());
+                                        MessageEvent.fire(eventBus, Message.success(message));
+                                        accessControl.reload(() -> {
+                                            refresh(RefreshMode.RESTORE_SELECTION);
+                                            if (isCurrentUser(principal)) {
+                                                eventBus.fireEvent(new UserChangedEvent());
+                                            }
+                                        });
                                     }
-                                });
-                            }
-                        },
+                                },
                         new CheckRoleMapping(dispatcher, role),
                         new AddRoleMapping(dispatcher, role, status -> status == 404),
                         new AddAssignment(dispatcher, role, principal, include));

@@ -15,15 +15,35 @@
  */
 package org.jboss.hal.client.configuration.subsystem.messaging;
 
-import java.util.List;
-import java.util.Map;
-import javax.inject.Inject;
-import javax.inject.Provider;
+import static java.util.Arrays.asList;
+import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.ROLE_TEMPLATE;
+import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.SELECTED_SERVER_TEMPLATE;
+import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.SERVER_ADDRESS;
+import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.SERVER_TEMPLATE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.ADD;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.ADDRESS_SETTING;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.CHILD_TYPE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.DIVERT;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.JMS_QUEUE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.JMS_TOPIC;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.MESSAGING_ACTIVEMQ;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.PATTERN;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.QUEUE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.REMOVE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.RESULT;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.ROLE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.SECURITY_SETTING;
+import static org.jboss.hal.dmr.ModelNodeHelper.asNamedNodes;
 
 import com.google.web.bindery.event.shared.EventBus;
 import com.gwtplatform.mvp.client.annotations.NameToken;
 import com.gwtplatform.mvp.client.annotations.ProxyCodeSplit;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
+import java.util.List;
+import java.util.Map;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
@@ -41,15 +61,15 @@ import org.jboss.hal.core.mbui.dialog.AddResourceDialog;
 import org.jboss.hal.core.mbui.dialog.NameItem;
 import org.jboss.hal.core.mbui.form.ModelNodeForm;
 import org.jboss.hal.core.mvp.SupportsExpertMode;
-import org.jboss.hal.dmr.ModelNode;
-import org.jboss.hal.dmr.dispatch.Dispatcher;
 import org.jboss.hal.dmr.Composite;
 import org.jboss.hal.dmr.CompositeResult;
+import org.jboss.hal.dmr.ModelNode;
 import org.jboss.hal.dmr.NamedNode;
 import org.jboss.hal.dmr.Operation;
 import org.jboss.hal.dmr.ResourceAddress;
 import org.jboss.hal.dmr.ResourceCheck;
 import org.jboss.hal.dmr.SuccessfulOutcome;
+import org.jboss.hal.dmr.dispatch.Dispatcher;
 import org.jboss.hal.meta.Metadata;
 import org.jboss.hal.meta.MetadataRegistry;
 import org.jboss.hal.meta.StatementContext;
@@ -61,14 +81,6 @@ import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
 import org.jboss.hal.spi.Requires;
-
-import static java.util.Arrays.asList;
-import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.ROLE_TEMPLATE;
-import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.SELECTED_SERVER_TEMPLATE;
-import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.SERVER_ADDRESS;
-import static org.jboss.hal.client.configuration.subsystem.messaging.AddressTemplates.SERVER_TEMPLATE;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.*;
-import static org.jboss.hal.dmr.ModelNodeHelper.asNamedNodes;
 
 /**
  * @author Harald Pehl
@@ -96,7 +108,6 @@ public class DestinationPresenter
         void updateDivert(List<NamedNode> diverts);
     }
     // @formatter:on
-
 
     private final Dispatcher dispatcher;
     private final Provider<Progress> progress;
@@ -193,17 +204,14 @@ public class DestinationPresenter
                 }
             };
 
-            new Async<FunctionContext>(progress.get()).waterfall(
-                    new FunctionContext(),
-                    new SuccessfulOutcome(getEventBus(), resources) {
-                        @Override
-                        public void onSuccess(final FunctionContext context) {
-                            MessageEvent.fire(getEventBus(), Message.success(resources.messages()
-                                    .addResourceSuccess(Names.SECURITY_SETTING, pattern + "/" + name)));
-                            reload();
-                        }
-                    },
-                    check, add);
+            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
+                @Override
+                public void onSuccess(final FunctionContext context) {
+                    MessageEvent.fire(getEventBus(), Message.success(resources.messages()
+                            .addResourceSuccess(Names.SECURITY_SETTING, pattern + "/" + name)));
+                    reload();
+                }
+            }, check, add);
         }).show();
     }
 
@@ -286,8 +294,7 @@ public class DestinationPresenter
                             }
                         };
 
-                        new Async<FunctionContext>(progress.get()).waterfall(
-                                new FunctionContext(),
+                        Async.series(progress.get(), new FunctionContext(),
                                 new SuccessfulOutcome(getEventBus(), resources) {
                                     @Override
                                     public void onSuccess(final FunctionContext context) {

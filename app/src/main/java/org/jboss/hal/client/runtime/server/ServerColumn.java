@@ -27,7 +27,6 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.web.bindery.event.shared.EventBus;
 import com.gwtplatform.mvp.client.proxy.PlaceManager;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
-import elemental2.dom.DomGlobal;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Function;
@@ -215,29 +214,27 @@ public class ServerColumn extends FinderColumn<Server> implements ServerActionHa
                 };
             }
 
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                    new Outcome<FunctionContext>() {
-                        @Override
-                        public void onFailure(final FunctionContext context) {
-                            callback.onFailure(context.getException());
-                        }
-
-                        @Override
-                        public void onSuccess(final FunctionContext context) {
-                            List<Server> servers = context.get(TopologyFunctions.SERVERS);
-                            if (servers == null) {
-                                servers = Collections.emptyList();
+            Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+                            @Override
+                            public void onFailure(final FunctionContext context1) {
+                                callback.onFailure(context1.getException());
                             }
-                            callback.onSuccess(servers.stream().sorted(comparing(Server::getName))
-                                    .collect(toList()));
 
-                            // Restore pending servers visualization
-                            servers.stream()
-                                    .filter(serverActions::isPending)
-                                    .forEach(server -> ItemMonitor.startProgress(server.getId()));
-                        }
-                    },
-                    serverConfigsFn, new TopologyFunctions.TopologyStartedServers(environment, dispatcher));
+                            @Override
+                            public void onSuccess(final FunctionContext context1) {
+                                List<Server> servers = context1.get(TopologyFunctions.SERVERS);
+                                if (servers == null) {
+                                    servers = Collections.emptyList();
+                                }
+                                callback.onSuccess(servers.stream().sorted(comparing(Server::getName))
+                                        .collect(toList()));
+
+                                // Restore pending servers visualization
+                                servers.stream()
+                                        .filter(serverActions::isPending)
+                                        .forEach(server -> ItemMonitor.startProgress(server.getId()));
+                            }
+                        }, serverConfigsFn, new TopologyFunctions.TopologyStartedServers(environment, dispatcher));
         };
         setItemsProvider(itemsProvider);
 

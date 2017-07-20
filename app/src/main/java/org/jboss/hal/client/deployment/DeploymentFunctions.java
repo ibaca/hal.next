@@ -490,8 +490,7 @@ class DeploymentFunctions {
             }
 
             logger.debug("About to upload / update {} file(s): {}", files.getLength(), builder.toString());
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                    new UploadOutcome<>(column, eventBus, files, resources),
+            Async.series(progress.get(), new FunctionContext(), new UploadOutcome<>(column, eventBus, files, resources),
                     functions.toArray(new Function[functions.size()]));
         }
     }
@@ -517,8 +516,7 @@ class DeploymentFunctions {
 
             logger.debug("About to upload and deploy {} file(s): {} to server group {}",
                     files.getLength(), builder.toString(), serverGroup);
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                    new UploadOutcome<>(column, eventBus, files, resources),
+            Async.series(progress.get(), new FunctionContext(), new UploadOutcome<>(column, eventBus, files, resources),
                     functions.toArray(new Function[functions.size()]));
         }
     }

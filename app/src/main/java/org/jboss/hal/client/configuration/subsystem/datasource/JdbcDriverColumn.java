@@ -98,11 +98,10 @@ public class JdbcDriverColumn extends FinderColumn<JdbcDriver> {
                             callback.onSuccess(context.get(JdbcDriverFunctions.DRIVERS));
                         }
                     };
-                    new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(), outcome,
+                    Async.series(progress.get(), new FunctionContext(), outcome,
                             new JdbcDriverFunctions.ReadConfiguration(crud),
                             new TopologyFunctions.RunningServersQuery(environment, dispatcher,
-                                    environment.isStandalone()
-                                            ? null
+                                    environment.isStandalone() ? null
                                             : new ModelNode().set(PROFILE_NAME, statementContext.selectedProfile())),
                             new JdbcDriverFunctions.ReadRuntime(environment, dispatcher),
                             new JdbcDriverFunctions.CombineDriverResults());

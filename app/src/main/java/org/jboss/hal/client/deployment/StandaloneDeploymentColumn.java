@@ -251,28 +251,25 @@ public class StandaloneDeploymentColumn extends FinderColumn<Deployment> {
                     wzd.showProgress(resources.constants().deploymentInProgress(),
                             resources.messages().deploymentInProgress(name));
 
-                    Function[] functions = {
+                    Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+                                            @Override
+                                            public void onFailure(final FunctionContext functionContext) {
+                                                wzd.showError(resources.constants().deploymentError(),
+                                                        resources.messages().deploymentError(name), functionContext.getError());
+                                            }
+
+                                            @Override
+                                            public void onSuccess(final FunctionContext functionContext) {
+                                                refresh(Ids.deployment(name));
+                                                wzd.showSuccess(resources.constants().uploadSuccessful(),
+                                                        resources.messages().uploadSuccessful(name),
+                                                        resources.messages().view(Names.DEPLOYMENT),
+                                                        cxt -> { /* nothing to do, deployment is already selected */ });
+                                            }
+                                        },
                             new CheckDeployment(dispatcher, name),
                             new UploadOrReplace(environment, dispatcher, name, runtimeName, context.file,
-                                    context.enabled)
-                    };
-                    new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                            new Outcome<FunctionContext>() {
-                                @Override
-                                public void onFailure(final FunctionContext functionContext) {
-                                    wzd.showError(resources.constants().deploymentError(),
-                                            resources.messages().deploymentError(name), functionContext.getError());
-                                }
-
-                                @Override
-                                public void onSuccess(final FunctionContext functionContext) {
-                                    refresh(Ids.deployment(name));
-                                    wzd.showSuccess(resources.constants().uploadSuccessful(),
-                                            resources.messages().uploadSuccessful(name),
-                                            resources.messages().view(Names.DEPLOYMENT),
-                                            cxt -> { /* nothing to do, deployment is already selected */ });
-                                }
-                            }, functions);
+                                    context.enabled));
                 })
                 .build();
         wizard.show();
@@ -281,7 +278,7 @@ public class StandaloneDeploymentColumn extends FinderColumn<Deployment> {
     private void addUnmanaged() {
         Metadata metadata = metadataRegistry.lookup(DEPLOYMENT_TEMPLATE);
         AddUnmanagedDialog dialog = new AddUnmanagedDialog(metadata, resources,
-                (name, model) -> new Async<FunctionContext>(progress.get()).single(new FunctionContext(),
+                (name, model) -> Async.single(progress.get(), new FunctionContext(),
                         new SuccessfulOutcome(eventBus, resources) {
                             @Override
                             public void onSuccess(final FunctionContext context) {

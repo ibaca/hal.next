@@ -151,8 +151,7 @@ public class MacroEditorPresenter
             }
         };
         getView().disableMacro(macro);
-        new Async<FunctionContext>(progress.get())
-                .waterfall(new FunctionContext(), outcome, functions.toArray(new Function[functions.size()]));
+        Async.series(progress.get(), new FunctionContext(), outcome, functions.toArray(new Function[functions.size()]));
     }
 
     void rename(Macro macro) {

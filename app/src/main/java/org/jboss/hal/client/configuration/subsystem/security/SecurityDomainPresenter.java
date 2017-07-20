@@ -15,17 +15,24 @@
  */
 package org.jboss.hal.client.configuration.subsystem.security;
 
-import java.util.Map;
-import javax.inject.Inject;
-import javax.inject.Provider;
+import static org.jboss.hal.client.configuration.subsystem.security.AddressTemplates.SECURITY_DOMAIN_ADDRESS;
+import static org.jboss.hal.client.configuration.subsystem.security.AddressTemplates.SECURITY_DOMAIN_TEMPLATE;
+import static org.jboss.hal.client.configuration.subsystem.security.AddressTemplates.SELECTED_SECURITY_DOMAIN_TEMPLATE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.ADD;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.NAME;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.SECURITY;
+import static org.jboss.hal.meta.token.NameTokens.SECURITY_DOMAIN;
 
 import com.google.web.bindery.event.shared.EventBus;
 import com.gwtplatform.mvp.client.annotations.NameToken;
 import com.gwtplatform.mvp.client.annotations.ProxyCodeSplit;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
+import java.util.Map;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.form.Form;
@@ -59,15 +66,6 @@ import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
 import org.jboss.hal.spi.Requires;
 
-import static org.jboss.hal.client.configuration.subsystem.security.AddressTemplates.SECURITY_DOMAIN_ADDRESS;
-import static org.jboss.hal.client.configuration.subsystem.security.AddressTemplates.SECURITY_DOMAIN_TEMPLATE;
-import static org.jboss.hal.client.configuration.subsystem.security.AddressTemplates.SELECTED_SECURITY_DOMAIN_TEMPLATE;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.ADD;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.NAME;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.SECURITY;
-import static org.jboss.hal.meta.token.NameTokens.SECURITY_DOMAIN;
-
 /**
  * @author Harald Pehl
  */
@@ -85,7 +83,6 @@ public class SecurityDomainPresenter
         void update(SecurityDomain securityDomain);
     }
     // @formatter:on
-
 
     private final Dispatcher dispatcher;
     private final CrudOperations crud;
@@ -186,23 +183,9 @@ public class SecurityDomainPresenter
     void addModule(Module module) {
         // first check for (and add if necessary) the intermediate singleton
         AddressTemplate singletonTemplate = SELECTED_SECURITY_DOMAIN_TEMPLATE.append(module.singleton);
-        Function[] functions = new Function[]{
-                new ResourceCheck(dispatcher, singletonTemplate.resolve(statementContext)),
-                (Function<FunctionContext>) control -> {
-                    int status = control.getContext().pop();
-                    if (status == 200) {
-                        control.proceed();
-                    } else {
-                        Operation operation = new Operation.Builder(singletonTemplate.resolve(statementContext), ADD)
-                                .build();
-                        dispatcher.execute(operation, result -> control.proceed());
-                    }
-                }
-        };
 
         // then add the final resource
-        new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                new SuccessfulOutcome(getEventBus(), resources) {
+        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
                     @Override
                     public void onSuccess(final FunctionContext context) {
                         AddressTemplate metadataTemplate = SECURITY_DOMAIN_TEMPLATE
@@ -221,7 +204,18 @@ public class SecurityDomainPresenter
                                 });
                         dialog.show();
                     }
-                }, functions);
+                },
+                new ResourceCheck(dispatcher, singletonTemplate.resolve(statementContext)),
+                control -> {
+                    int status = control.getContext().pop();
+                    if (status == 200) {
+                        control.proceed();
+                    } else {
+                        Operation operation = new Operation.Builder(singletonTemplate.resolve(statementContext), ADD)
+                                .build();
+                        dispatcher.execute(operation, result -> control.proceed());
+                    }
+                });
     }
 
     void saveModule(Form<NamedNode> form, Map<String, Object> changedValues, Module module) {

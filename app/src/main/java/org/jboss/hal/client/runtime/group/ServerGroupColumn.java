@@ -15,14 +15,22 @@
  */
 package org.jboss.hal.client.runtime.group;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Provider;
+import static org.jboss.hal.core.finder.FinderColumn.RefreshMode.RESTORE_SELECTION;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.RELOAD_SERVERS;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.RESTART_SERVERS;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.RESUME_SERVERS;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.SERVER_GROUP;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.START_SERVERS;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.STOP_SERVERS;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.SUSPEND_SERVERS;
 
 import com.google.web.bindery.event.shared.EventBus;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
 import elemental2.dom.HTMLElement;
+import java.util.ArrayList;
+import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Outcome;
@@ -57,9 +65,6 @@ import org.jboss.hal.spi.Column;
 import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Requires;
 
-import static org.jboss.hal.core.finder.FinderColumn.RefreshMode.RESTORE_SELECTION;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.*;
-
 /**
  * @author Harald Pehl
  */
@@ -90,18 +95,16 @@ public class ServerGroupColumn extends FinderColumn<ServerGroup>
                         AddressTemplate.of("/server-group=*"), Ids::serverGroup))
                 .columnAction(columnActionFactory.refresh(Ids.SERVER_GROUP_REFRESH))
 
-                .itemsProvider((context, callback) ->
-                        new Async<FunctionContext>(progress.get()).waterfall(
-                                new FunctionContext(),
-                                new Outcome<FunctionContext>() {
+                .itemsProvider((context, callback) -> Async
+                        .series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                                     @Override
-                                    public void onFailure(final FunctionContext context) {
-                                        callback.onFailure(context.getException());
+                                    public void onFailure(final FunctionContext context1) {
+                                        callback.onFailure(context1.getException());
                                     }
 
                                     @Override
-                                    public void onSuccess(final FunctionContext context) {
-                                        List<ServerGroup> serverGroups = context.get(TopologyFunctions.SERVER_GROUPS);
+                                    public void onSuccess(final FunctionContext context1) {
+                                        List<ServerGroup> serverGroups = context1.get(TopologyFunctions.SERVER_GROUPS);
                                         callback.onSuccess(serverGroups);
                                     }
                                 },

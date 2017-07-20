@@ -311,7 +311,7 @@ public class ModelBrowser implements IsElement<HTMLElement> {
                     tree.select(previousFilter.node.id, false);
                 }
             };
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(), outcome,
+            Async.series(progress.get(), new FunctionContext(), outcome,
                     functions.toArray(new Function[functions.size()]));
         }
     }

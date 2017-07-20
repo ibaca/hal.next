@@ -15,6 +15,16 @@
  */
 package org.jboss.hal.core;
 
+import static org.jboss.hal.dmr.ModelDescriptionConstants.ADD;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.CHILD_TYPE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.NAME;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.REMOVE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.VALUE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
+
+import com.google.common.collect.Sets;
+import com.google.web.bindery.event.shared.EventBus;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,21 +33,18 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Provider;
-
-import com.google.common.collect.Sets;
-import com.google.web.bindery.event.shared.EventBus;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
-import org.jboss.hal.dmr.ModelNode;
-import org.jboss.hal.dmr.dispatch.Dispatcher;
 import org.jboss.hal.dmr.Composite;
 import org.jboss.hal.dmr.CompositeResult;
+import org.jboss.hal.dmr.ModelNode;
 import org.jboss.hal.dmr.Operation;
 import org.jboss.hal.dmr.ResourceAddress;
 import org.jboss.hal.dmr.SuccessfulOutcome;
+import org.jboss.hal.dmr.dispatch.Dispatcher;
 import org.jboss.hal.meta.AddressTemplate;
 import org.jboss.hal.meta.Metadata;
 import org.jboss.hal.meta.StatementContext;
@@ -48,8 +55,6 @@ import org.jboss.hal.spi.Callback;
 import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
-
-import static org.jboss.hal.dmr.ModelDescriptionConstants.*;
 
 /**
  * Many resources store properties in form of a sub resource similar to:
@@ -108,7 +113,6 @@ public class PropertiesOperations {
                     });
         }
     }
-
 
     private static class MergeProperties implements Function<FunctionContext> {
 
@@ -170,7 +174,6 @@ public class PropertiesOperations {
         }
     }
 
-
     private final EventBus eventBus;
     private final Dispatcher dispatcher;
     private final MetadataProcessor metadataProcessor;
@@ -198,7 +201,6 @@ public class PropertiesOperations {
         this.operationFactory = new OperationFactory();
     }
 
-
     // ------------------------------------------------------ save methods
     // please add additional save() or saveSingleton() methods from CrudOperations if necessary
 
@@ -214,14 +216,14 @@ public class PropertiesOperations {
      * <li>Removed properties are removed from the PSR</li>
      * </ol>
      *
-     * @param type          the human readable resource type used in the success message
-     * @param name          the resource name
-     * @param template      the address template which is resolved against the current statement context and the
-     *                      resource name to get the resource address for the operation
+     * @param type the human readable resource type used in the success message
+     * @param name the resource name
+     * @param template the address template which is resolved against the current statement context and the
+     * resource name to get the resource address for the operation
      * @param changedValues the changed values / payload for the operation
-     * @param psr           the name of the properties sub resource (PSR) - most often this is "property"
-     * @param properties    the properties to save
-     * @param callback      the callback executed after saving the resource
+     * @param psr the name of the properties sub resource (PSR) - most often this is "property"
+     * @param properties the properties to save
+     * @param callback the callback executed after saving the resource
      */
     public void saveWithProperties(final String type, final String name, final AddressTemplate template,
             final Map<String, Object> changedValues, final String psr, final Map<String, String> properties,
@@ -254,14 +256,14 @@ public class PropertiesOperations {
      * <li>Removed properties are removed from the PSR</li>
      * </ol>
      *
-     * @param type          the human readable resource type used in the success message
-     * @param name          the resource name
-     * @param address       the fq address for the operation
+     * @param type the human readable resource type used in the success message
+     * @param name the resource name
+     * @param address the fq address for the operation
      * @param changedValues the changed values / payload for the operation
-     * @param metadata      the metadata for the of the attributes in the change set
-     * @param psr           the name of the properties sub resource (PSR) - most often this is "property"
-     * @param properties    the properties to save
-     * @param callback      the callback executed after saving the resource
+     * @param metadata the metadata for the of the attributes in the change set
+     * @param psr the name of the properties sub resource (PSR) - most often this is "property"
+     * @param properties the properties to save
+     * @param callback the callback executed after saving the resource
      */
     public void saveWithProperties(final String type, final String name, final ResourceAddress address,
             final Map<String, Object> changedValues, final Metadata metadata, final String psr,
@@ -287,13 +289,13 @@ public class PropertiesOperations {
      * <li>Removed properties are removed from the PSR</li>
      * </ol>
      *
-     * @param type       the human readable resource type used in the success message
-     * @param name       the resource name
-     * @param address    the fq address for the operation
+     * @param type the human readable resource type used in the success message
+     * @param name the resource name
+     * @param address the fq address for the operation
      * @param operations the composite operation to persist the changed values
-     * @param psr        the name of the properties sub resource (PSR) - most often this is "property"
+     * @param psr the name of the properties sub resource (PSR) - most often this is "property"
      * @param properties the properties to save
-     * @param callback   the callback executed after saving the resource
+     * @param callback the callback executed after saving the resource
      */
     public void saveWithProperties(final String type, final String name, final ResourceAddress address,
             final Composite operations, final String psr, final Map<String, String> properties,
@@ -318,13 +320,13 @@ public class PropertiesOperations {
      * <li>Removed properties are removed from the PSR</li>
      * </ol>
      *
-     * @param type          the human readable resource type used in the success message
-     * @param address       the fq address for the operation
+     * @param type the human readable resource type used in the success message
+     * @param address the fq address for the operation
      * @param changedValues the changed values / payload for the operation
-     * @param metadata      the metadata for the of the attributes in the change set
-     * @param psr           the name of the properties sub resource (PSR) - most often this is "property"
-     * @param properties    the properties to save
-     * @param callback      the callback executed after saving the resource
+     * @param metadata the metadata for the of the attributes in the change set
+     * @param psr the name of the properties sub resource (PSR) - most often this is "property"
+     * @param properties the properties to save
+     * @param callback the callback executed after saving the resource
      */
     public void saveSingletonWithProperties(final String type, final ResourceAddress address,
             final Map<String, Object> changedValues, final Metadata metadata, final String psr,
@@ -344,21 +346,8 @@ public class PropertiesOperations {
             Composite operations, String psr, Map<String, String> properties, Callback callback) {
 
         // TODO Check if the functions can be replaced with a composite operation
-        Function[] functions = new Function[]{
-                (Function<FunctionContext>) control -> {
-                    if (operations.isEmpty()) {
-                        control.proceed();
-                    } else {
-                        dispatcher.executeInFunction(control, operations,
-                                (CompositeResult result) -> control.proceed());
-                    }
-                },
-                new ReadProperties(dispatcher, address, psr),
-                new MergeProperties(dispatcher, address, psr, properties)
-        };
 
-        new Async<FunctionContext>(progress.get())
-                .waterfall(new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
+        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
                     @Override
                     public void onSuccess(final FunctionContext context) {
                         if (name == null) {
@@ -370,6 +359,16 @@ public class PropertiesOperations {
                         }
                         callback.execute();
                     }
-                }, functions);
+                },
+                control -> {
+                    if (operations.isEmpty()) {
+                        control.proceed();
+                    } else {
+                        dispatcher.executeInFunction(control, operations,
+                                (CompositeResult result) -> control.proceed());
+                    }
+                },
+                new ReadProperties(dispatcher, address, psr),
+                new MergeProperties(dispatcher, address, psr, properties));
     }
 }

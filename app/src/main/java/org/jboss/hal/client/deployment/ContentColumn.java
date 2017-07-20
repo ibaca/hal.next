@@ -148,8 +148,7 @@ public class ContentColumn extends FinderColumn<Content> {
                             callback.onSuccess(content);
                         }
                     };
-                    new Async<FunctionContext>(progress.get())
-                            .single(new FunctionContext(), outcome, new LoadContent(dispatcher));
+                    Async.single(progress.get(), new FunctionContext(), outcome, new LoadContent(dispatcher));
                 })
 
                 .useFirstActionAsBreadcrumbHandler()
@@ -302,27 +301,24 @@ public class ContentColumn extends FinderColumn<Content> {
                     wzd.showProgress(resources.constants().uploadInProgress(),
                             resources.messages().uploadInProgress(name));
 
-                    Function[] functions = {
-                            new CheckDeployment(dispatcher, name),
-                            new UploadOrReplace(environment, dispatcher, name, runtimeName, context.file, false)
-                    };
-                    new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                            new Outcome<FunctionContext>() {
-                                @Override
-                                public void onFailure(final FunctionContext functionContext) {
-                                    wzd.showError(resources.constants().uploadError(),
-                                            resources.messages().uploadError(name), functionContext.getError());
-                                }
+                    Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+                                            @Override
+                                            public void onFailure(final FunctionContext functionContext) {
+                                                wzd.showError(resources.constants().uploadError(),
+                                                        resources.messages().uploadError(name), functionContext.getError());
+                                            }
 
-                                @Override
-                                public void onSuccess(final FunctionContext functionContext) {
-                                    refresh(Ids.content(name));
-                                    wzd.showSuccess(resources.constants().uploadSuccessful(),
-                                            resources.messages().uploadSuccessful(name),
-                                            resources.messages().view(Names.CONTENT),
-                                            cxt -> { /* nothing to do, content is already selected */ });
-                                }
-                            }, functions);
+                                            @Override
+                                            public void onSuccess(final FunctionContext functionContext) {
+                                                refresh(Ids.content(name));
+                                                wzd.showSuccess(resources.constants().uploadSuccessful(),
+                                                        resources.messages().uploadSuccessful(name),
+                                                        resources.messages().view(Names.CONTENT),
+                                                        cxt -> { /* nothing to do, content is already selected */ });
+                                            }
+                                        },
+                            new CheckDeployment(dispatcher, name),
+                            new UploadOrReplace(environment, dispatcher, name, runtimeName, context.file, false));
                 })
                 .build();
         wizard.show();
@@ -331,7 +327,7 @@ public class ContentColumn extends FinderColumn<Content> {
     private void addUnmanaged() {
         Metadata metadata = metadataRegistry.lookup(CONTENT_TEMPLATE);
         AddUnmanagedDialog dialog = new AddUnmanagedDialog(metadata, resources,
-                (name, model) -> new Async<FunctionContext>(progress.get()).single(new FunctionContext(),
+                (name, model) -> Async.single(progress.get(), new FunctionContext(),
                         new SuccessfulOutcome(eventBus, resources) {
                             @Override
                             public void onSuccess(final FunctionContext context) {
@@ -352,28 +348,25 @@ public class ContentColumn extends FinderColumn<Content> {
                 .primary(resources.constants().replace(), () -> {
                     boolean valid = uploadElement.validate();
                     if (valid) {
-                        Function[] functions = new Function[]{
+                        Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+                                                    @Override
+                                                    public void onFailure(final FunctionContext context) {
+                                                        MessageEvent.fire(eventBus, Message.error(
+                                                                resources.messages().contentReplaceError(content.getName()),
+                                                                context.getError()));
+                                                    }
+
+                                                    @Override
+                                                    public void onSuccess(final FunctionContext context) {
+                                                        refresh(Ids.content(content.getName()));
+                                                        MessageEvent.fire(eventBus, Message.success(
+                                                                resources.messages().contentReplaceSuccess(content.getName())));
+                                                    }
+                                                },
                                 new CheckDeployment(dispatcher, content.getName()),
                                 // To replace an existing content, the original name and runtime-name must be preserved.
                                 new UploadOrReplace(environment, dispatcher, content.getName(),
-                                        content.getRuntimeName(), uploadElement.getFiles().item(0), false)
-                        };
-                        new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                                new Outcome<FunctionContext>() {
-                                    @Override
-                                    public void onFailure(final FunctionContext context) {
-                                        MessageEvent.fire(eventBus, Message.error(
-                                                resources.messages().contentReplaceError(content.getName()),
-                                                context.getError()));
-                                    }
-
-                                    @Override
-                                    public void onSuccess(final FunctionContext context) {
-                                        refresh(Ids.content(content.getName()));
-                                        MessageEvent.fire(eventBus, Message.success(
-                                                resources.messages().contentReplaceSuccess(content.getName())));
-                                    }
-                                }, functions);
+                                        content.getRuntimeName(), uploadElement.getFiles().item(0), false));
                     }
                     return valid;
                 })

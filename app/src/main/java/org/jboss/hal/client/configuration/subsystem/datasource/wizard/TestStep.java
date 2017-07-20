@@ -168,7 +168,6 @@ class TestStep extends WizardStep<Context, State> {
                         resources.messages().testConnectionSuccess(dataSource.getName()), false);
             }
         };
-        new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(), outcome,
-                functions.toArray(new Function[functions.size()]));
+        Async.series(progress.get(), new FunctionContext(), outcome, functions.toArray(new Function[functions.size()]));
     }
 }

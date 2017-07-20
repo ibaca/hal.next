@@ -237,23 +237,22 @@ public class AssignmentColumn extends FinderColumn<Assignment> {
         return column -> {
             Principal principal = findPrincipal(getFinder().getContext().getPath());
             if (principal != null) {
-                new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                        new SuccessfulOutcome(eventBus, resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                String type = resources.constants().role();
-                                SafeHtml message = include
-                                        ? resources.messages().assignmentIncludeSuccess(type, role.getName())
-                                        : resources.messages().assignmentExcludeSuccess(type, role.getName());
-                                MessageEvent.fire(eventBus, Message.success(message));
-                                accessControl.reload(() -> {
-                                    refresh(RefreshMode.RESTORE_SELECTION);
-                                    if (isCurrentUser(principal)) {
-                                        eventBus.fireEvent(new UserChangedEvent());
+                Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
+                                    @Override
+                                    public void onSuccess(final FunctionContext context) {
+                                        String type = resources.constants().role();
+                                        SafeHtml message = include
+                                                ? resources.messages().assignmentIncludeSuccess(type, role.getName())
+                                                : resources.messages().assignmentExcludeSuccess(type, role.getName());
+                                        MessageEvent.fire(eventBus, Message.success(message));
+                                        accessControl.reload(() -> {
+                                            refresh(RefreshMode.RESTORE_SELECTION);
+                                            if (isCurrentUser(principal)) {
+                                                eventBus.fireEvent(new UserChangedEvent());
+                                            }
+                                        });
                                     }
-                                });
-                            }
-                        },
+                                },
                         new CheckRoleMapping(dispatcher, role),
                         new AddRoleMapping(dispatcher, role, status -> status == 404),
                         new AddAssignment(dispatcher, role, principal, include));

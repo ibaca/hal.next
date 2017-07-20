@@ -15,13 +15,16 @@
  */
 package org.jboss.hal.meta.processing;
 
+import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+
+import com.google.common.collect.Lists;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.inject.Inject;
-
-import com.google.common.collect.Lists;
-import com.google.gwt.user.client.rpc.AsyncCallback;
 import jsinterop.annotations.JsFunction;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsMethod;
@@ -47,10 +50,6 @@ import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.Collections.singleton;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
-
 /**
  * Reads resource {@link Metadata} using read-resource-description operations and stores it into the {@link
  * MetadataRegistry}. If you're sure the metadata is present you can use the {@link MetadataRegistry} instead.
@@ -66,7 +65,6 @@ public class MetadataProcessor {
 
         void onError(Throwable error);
     }
-
 
     /**
      * Recursive depth for the r-r-d operations. Keep this small - some browsers choke on too big payload size
@@ -186,20 +184,17 @@ public class MetadataProcessor {
             allFunctions.addAll(functions);
             allFunctions.addAll(optionalFunctions);
             if (functions.size() == 1) {
-                new Async<FunctionContext>(progress).single(new FunctionContext(), outcome, allFunctions.get(0));
+                Async.single(progress, new FunctionContext(), outcome, allFunctions.get(0));
             } else {
                 // Unfortunately we cannot use Async.parallel() here unless someone finds a way
                 // to unambiguously map parallel r-r-d operations to their results (multiple "step-1" results)
-                //noinspection SuspiciousToArrayCall
-                new Async<FunctionContext>(progress).waterfall(new FunctionContext(), outcome,
-                        (Function[]) allFunctions.toArray(new RrdFunction[allFunctions.size()]));
+                Async.series(progress, new FunctionContext(), outcome,
+                        allFunctions.toArray(new RrdFunction[allFunctions.size()]));
             }
         }
     }
 
-
     // ------------------------------------------------------ JS methods
-
 
     @JsFunction
     public interface JsMetadataCallback {

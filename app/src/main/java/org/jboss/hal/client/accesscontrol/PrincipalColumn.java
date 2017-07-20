@@ -217,18 +217,17 @@ class PrincipalColumn extends FinderColumn<Principal> {
         collectFunctions(functions, type, name, true, model, INCLUDE);
         collectFunctions(functions, type, name, false, model, EXCLUDE);
         if (!functions.isEmpty()) {
-            new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                    new SuccessfulOutcome(eventBus, resources) {
-                        @Override
-                        public void onSuccess(final FunctionContext context) {
-                            String typeName = type == Principal.Type.USER
-                                    ? resources.constants().user()
-                                    : resources.constants().group();
-                            MessageEvent.fire(eventBus, Message.success(resources.messages()
-                                    .addResourceSuccess(typeName, name)));
-                            accessControl.reload(() -> refresh(Ids.principal(type.name().toLowerCase(), name)));
-                        }
-                    },
+            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
+                            @Override
+                            public void onSuccess(final FunctionContext context) {
+                                String typeName = type == Principal.Type.USER
+                                        ? resources.constants().user()
+                                        : resources.constants().group();
+                                MessageEvent.fire(eventBus, Message.success(resources.messages()
+                                        .addResourceSuccess(typeName, name)));
+                                accessControl.reload(() -> refresh(Ids.principal(type.name().toLowerCase(), name)));
+                            }
+                        },
                     functions.toArray(new Function[functions.size()]));
         }
     }

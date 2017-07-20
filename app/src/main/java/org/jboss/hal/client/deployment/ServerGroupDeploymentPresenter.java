@@ -130,14 +130,7 @@ public class ServerGroupDeploymentPresenter extends
 
     @Override
     protected void reload() {
-        Function[] functions = new Function[]{
-                new ReadServerGroupDeployments(environment, dispatcher, serverGroup, deployment),
-                new RunningServersQuery(environment, dispatcher, new ModelNode().set(SERVER_GROUP, serverGroup)),
-                new LoadDeploymentsFromRunningServer(environment, dispatcher)
-        };
-
-        new Async<FunctionContext>(progress.get()).waterfall(new FunctionContext(),
-                new Outcome<FunctionContext>() {
+        Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                     @Override
                     public void onFailure(final FunctionContext context) {
                         MessageEvent.fire(getEventBus(),
@@ -156,7 +149,10 @@ public class ServerGroupDeploymentPresenter extends
                                     Message.error(resources.messages().deploymentReadError(deployment)));
                         }
                     }
-                }, functions);
+                },
+                new ReadServerGroupDeployments(environment, dispatcher, serverGroup, deployment),
+                new RunningServersQuery(environment, dispatcher, new ModelNode().set(SERVER_GROUP, serverGroup)),
+                new LoadDeploymentsFromRunningServer(environment, dispatcher));
     }
 
     void goToServerGroup() {
