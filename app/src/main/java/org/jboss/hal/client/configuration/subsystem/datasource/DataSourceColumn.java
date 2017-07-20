@@ -242,7 +242,7 @@ public class DataSourceColumn extends FinderColumn<DataSource> {
 
         Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
             @Override
-            public void onFailure(final FunctionContext context) {
+            public void onFailure(final Throwable context) {
                 showWizard(Collections.emptyList(), Collections.emptyList(), xa);
             }
 

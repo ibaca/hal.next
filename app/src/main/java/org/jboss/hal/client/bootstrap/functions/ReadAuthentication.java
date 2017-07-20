@@ -81,7 +81,7 @@ public class ReadAuthentication implements BootstrapFunction {
     }
 
     @Override
-    public void execute(final Control<FunctionContext> control) {
+    public void accept(final Control<FunctionContext> control) {
         logStart();
 
         ResourceAddress address = AUTHENTICATION_TEMPLATE.resolve(statementContext);

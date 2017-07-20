@@ -137,11 +137,11 @@ public class MacroEditorPresenter
                 .map(operation -> new MacroOperationFunction(dispatcher, operation)).collect(toList());
         Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
             @Override
-            public void onFailure(final FunctionContext context) {
+            public void onFailure(final Throwable context) {
                 getView().enableMacro(macro);
                 MessageEvent
                         .fire(getEventBus(),
-                                Message.error(resources.messages().macroPlaybackError(), context.getError()));
+                                Message.error(resources.messages().macroPlaybackError(), context.getMessage()));
             }
 
             @Override

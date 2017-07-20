@@ -120,7 +120,7 @@ public class ServerActions {
         }
 
         @Override
-        public void onFailed(final Operation operation, final String failure) {
+        public void onFailed(final Operation operation, final Throwable failure) {
             finish(server, Result.ERROR, Message.error(errorMessage, failure));
         }
     }

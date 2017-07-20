@@ -95,7 +95,7 @@ public class PropertiesOperations {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Operation operation = new Operation.Builder(address, READ_CHILDREN_NAMES_OPERATION)
                     .param(CHILD_TYPE, psr)
                     .build();
@@ -130,7 +130,7 @@ public class PropertiesOperations {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Set<String> existingProperties = control.getContext().pop();
             Set<String> add = Sets.difference(properties.keySet(), existingProperties).immutableCopy();
             Set<String> modify = Sets.intersection(properties.keySet(), existingProperties).immutableCopy();

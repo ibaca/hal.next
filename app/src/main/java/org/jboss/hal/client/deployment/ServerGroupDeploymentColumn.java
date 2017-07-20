@@ -163,8 +163,8 @@ public class ServerGroupDeploymentColumn extends FinderColumn<ServerGroupDeploym
 
             Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                             @Override
-                            public void onFailure(final FunctionContext context1) {
-                                callback.onFailure(context1.getException());
+                            public void onFailure(final Throwable context1) {
+                                callback.onFailure(context1);
                             }
 
                             @Override
@@ -314,9 +314,9 @@ public class ServerGroupDeploymentColumn extends FinderColumn<ServerGroupDeploym
 
                     Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                                             @Override
-                                            public void onFailure(final FunctionContext functionContext) {
+                                            public void onFailure(final Throwable e) {
                                                 wzd.showError(resources.constants().deploymentError(),
-                                                        resources.messages().deploymentError(name), functionContext.getError());
+                                                        resources.messages().deploymentError(name), e.getMessage());
                                             }
 
                                             @Override
@@ -340,8 +340,8 @@ public class ServerGroupDeploymentColumn extends FinderColumn<ServerGroupDeploym
     private void addDeploymentFromContentRepository() {
         Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
             @Override
-            public void onFailure(final FunctionContext context) {
-                MessageEvent.fire(eventBus, Message.error(resources.messages().loadContentError(), context.getError()));
+            public void onFailure(final Throwable context) {
+                MessageEvent.fire(eventBus, Message.error(resources.messages().loadContentError(), context.getMessage()));
             }
 
             @Override

@@ -97,7 +97,7 @@ public class Dispatcher implements RecordingHandler {
     @FunctionalInterface
     public interface FailedCallback {
 
-        void onFailed(Operation operation, String failure);
+        void onFailed(Operation operation, Throwable failure);
     }
 
 
@@ -163,7 +163,7 @@ public class Dispatcher implements RecordingHandler {
             logger.error("Dispatcher failed: {}, operation: {}", failure, operation);
             if (!pendingLifecycleAction) {
                 eventBus.fireEvent(
-                        new MessageEvent(Message.error(resources.messages().lastOperationFailed(), failure)));
+                        new MessageEvent(Message.error(resources.messages().lastOperationFailed(), failure.getMessage())));
             }
         };
         this.exceptionCallback = (operation, t) -> {
@@ -475,7 +475,7 @@ public class Dispatcher implements RecordingHandler {
                                 new DispatchException("Wrong combination of operation and callback.", 500));
                     }
                 } else {
-                    failedCallback.onFailed(operation, payload.getFailureDescription());
+                    failedCallback.onFailed(operation, new Exception(payload.getFailureDescription()));
                 }
             } else {
                 if (!pendingLifecycleAction) {

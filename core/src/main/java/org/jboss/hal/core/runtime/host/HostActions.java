@@ -77,7 +77,7 @@ public class HostActions {
         }
 
         @Override
-        public void onFailed(final Operation operation, final String failure) {
+        public void onFailed(final Operation operation, final Throwable failure) {
             finish(host, servers, Result.ERROR, Message.error(errorMessage, failure));
         }
     }

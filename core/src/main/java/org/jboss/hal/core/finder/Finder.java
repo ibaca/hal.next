@@ -81,7 +81,7 @@ public class Finder implements IsElement, Attachable {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             appendColumn(segment.getColumnId(), new AsyncCallback<FinderColumn>() {
                 @Override
                 public void onFailure(final Throwable throwable) {
@@ -119,7 +119,7 @@ public class Finder implements IsElement, Attachable {
         private RefreshFunction(final FinderSegment segment) {this.segment = segment;}
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             FinderColumn column = getColumn(segment.getColumnId());
             if (column != null) {
                 // refresh the existing column
@@ -484,7 +484,7 @@ public class Finder implements IsElement, Attachable {
             }
             Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                         @Override
-                        public void onFailure(final FunctionContext context1) {}
+                        public void onFailure(final Throwable context1) {}
 
                         @Override
                         public void onSuccess(final FunctionContext context1) {
@@ -552,14 +552,15 @@ public class Finder implements IsElement, Attachable {
                 functions[index] = new SelectFunction(new FinderSegment(segment.getColumnId(), segment.getItemId()));
                 index++;
             }
-            Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+            FunctionContext context = new FunctionContext();
+            Async.series(progress.get(), context, new Outcome<FunctionContext>() {
                 @Override
-                public void onFailure(final FunctionContext context1) {
+                public void onFailure(final Throwable error) {
                     if (Finder.this.context.getPath().isEmpty()) {
                         fallback.run();
 
-                    } else if (!context1.emptyStack()) {
-                        FinderColumn column1 = context1.pop();
+                    } else if (!context.emptyStack()) {
+                        FinderColumn column1 = context.pop();
                         markHiddenColumns(); // only in case of an error!
                         f1nally(column1);
                     }

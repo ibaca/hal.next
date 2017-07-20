@@ -122,7 +122,7 @@ public class ModelBrowser implements IsElement<HTMLElement> {
         private OpenNodeFunction(final String id) {this.id = id;}
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (tree.api().getNode(id) != null) {
                 tree.api().openNode(id, control::proceed);
             } else {
@@ -302,7 +302,7 @@ public class ModelBrowser implements IsElement<HTMLElement> {
                     .collect(toList());
             Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
                 @Override
-                public void onFailure(final FunctionContext context) {
+                public void onFailure(final Throwable context) {
                     logger.debug("Failed to restore selection {}", previousFilter.parents);
                 }
 
@@ -532,7 +532,7 @@ public class ModelBrowser implements IsElement<HTMLElement> {
                 (operation, failure) -> {
                     emptyTree();
                     MessageEvent.fire(eventBus, Message.error(resources.messages().unknownResource(),
-                            resources.messages().unknownResourceDetails(root.toString(), failure)));
+                            resources.messages().unknownResourceDetails(root.toString(), failure.getMessage())));
 
                     adjustHeight();
                 },

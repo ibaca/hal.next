@@ -21,7 +21,7 @@ package org.jboss.gwt.flow;
 /** The final outcome of the controlled flow. */
 public interface Outcome<C> {
 
-    void onFailure(C context);
+    void onFailure(Throwable error);
 
     void onSuccess(C context);
 

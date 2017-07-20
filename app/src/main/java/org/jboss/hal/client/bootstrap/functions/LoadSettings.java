@@ -46,7 +46,7 @@ public class LoadSettings implements BootstrapFunction {
     }
 
     @Override
-    public void execute(final Control<FunctionContext> control) {
+    public void accept(final Control<FunctionContext> control) {
         logStart();
 
         settings.load(COLLECT_USER_DATA, environment.getHalBuild() == Build.COMMUNITY);

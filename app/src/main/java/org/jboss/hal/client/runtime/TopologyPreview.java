@@ -288,11 +288,11 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
                 UIConstants.MEDIUM_TIMEOUT);
         Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                     @Override
-                    public void onFailure(final FunctionContext context) {
+                    public void onFailure(final Throwable context) {
                         clearTimeout(timeoutHandle);
                         Elements.setVisible(loadingSection, false);
                         MessageEvent.fire(eventBus,
-                                Message.error(resources.messages().topologyError(), context.getError()));
+                                Message.error(resources.messages().topologyError(), context.getMessage()));
                     }
 
                     @Override
@@ -337,9 +337,9 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
     private void updateServer(Server server) {
         Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                     @Override
-                    public void onFailure(final FunctionContext context) {
+                    public void onFailure(final Throwable context) {
                         MessageEvent.fire(eventBus,
-                                Message.error(resources.messages().updateServerError(server.getName()), context.getError()));
+                                Message.error(resources.messages().updateServerError(server.getName()), context.getMessage()));
                     }
 
                     @Override

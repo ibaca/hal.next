@@ -19,6 +19,7 @@
 package org.jboss.gwt.flow;
 
 import com.google.gwt.core.client.Scheduler;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /** Flow control functions for GWT. Integrates with the default GWT scheduling mechanism. */
@@ -28,11 +29,11 @@ public class Async {
      * Convenience method to executes a single function. Use this method if you have implemented your business logic
      * across different functions, but just want to execute a single function.
      */
-    public static <C> void single(Progress progress, C context, Outcome<C> outcome, Function<C> function) {
+    public static <C> void single(Progress progress, C context, Outcome<C> outcome, Consumer<Control<C>> function) {
         progress.reset(1);
-        function.execute(new Control<C>() {
+        function.accept(new Control<C>() {
             @Override public void proceed() { progress.finish(); outcome.onSuccess(context); }
-            @Override public void abort() { progress.finish(); outcome.onFailure(context); }
+            @Override public void abort() { progress.finish(); outcome.onFailure(new Exception("abort")); }
             @Override public C getContext() { return context; }
         });
     }
@@ -43,9 +44,9 @@ public class Async {
      * no more functions are run and outcome for the series is immediately called with the value of the error.
      */
     @SafeVarargs
-    public static <C> void series(Progress progress, C context, Outcome<C> outcome, Function<C>... functions) {
+    public static <C> void series(Progress progress, C context, Outcome<C> outcome, Consumer<Control<C>>... functions) {
         class SequentialControl implements Control<C> {
-            private Function<C> next;
+            private Consumer<Control<C>> next;
             private int index;
             private boolean drained;
             private boolean aborted;
@@ -61,7 +62,9 @@ public class Async {
             @Override public void abort() { this.aborted = true;this.pending = false;}
             public boolean isAborted() { return aborted;}
             private boolean isDrained() { return drained;}
-            private void nextUnlessPending() { if (!pending) { pending = true;next.execute(this); } }
+            private void nextUnlessPending() { if (!pending) { pending = true;
+                next.accept(this);
+            } }
         }
         SequentialControl ctrl = new SequentialControl();
 
@@ -82,7 +85,7 @@ public class Async {
                 // schedule deferred so that 'return false' executes first!
                 Scheduler.get().scheduleDeferred(() -> {
                     progress.finish();
-                    outcome.onFailure(context);
+                    outcome.onFailure(new Exception("abort"));
                 });
                 return false;
             } else {
@@ -100,7 +103,7 @@ public class Async {
      */
     @SuppressWarnings("Duplicates")
     public static <C> void whilst(Progress progress, C context, Predicate<C> predicate, Outcome<C> outcome,
-            Function<C> function, int period) {
+            Consumer<Control<C>> function, int period) {
         class GuardedControl implements Control<C> {
             private boolean aborted;
             private boolean shouldProceed() { return predicate.test(context) && !aborted;}
@@ -118,7 +121,7 @@ public class Async {
                 Scheduler.get().scheduleDeferred(() -> {
                     if (ctrl.isAborted()) {
                         progress.finish();
-                        outcome.onFailure(context);
+                        outcome.onFailure(new Exception("abort"));
                     } else {
                         progress.finish();
                         outcome.onSuccess(context);
@@ -126,7 +129,7 @@ public class Async {
                 });
                 return false;
             } else {
-                function.execute(ctrl);
+                function.accept(ctrl);
                 progress.tick();
                 return true;
             }

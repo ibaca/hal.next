@@ -112,8 +112,8 @@ public class ServerGroupActions {
         }
 
         @Override
-        public void onFailed(final Operation operation, final String failure) {
-            finish(serverGroup, servers, Result.ERROR, Message.error(errorMessage, failure));
+        public void onFailed(final Operation operation, final Throwable failure) {
+            finish(serverGroup, servers, Result.ERROR, Message.error(errorMessage, failure.getMessage()));
         }
     }
 

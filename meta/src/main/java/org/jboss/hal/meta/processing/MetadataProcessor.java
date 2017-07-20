@@ -168,9 +168,9 @@ public class MetadataProcessor {
             logger.debug("About to execute {} composite operations", composites.size() + optionalComposites.size());
             Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
                 @Override
-                public void onFailure(final FunctionContext context) {
-                    logger.debug("Failed to process metadata: {}", context.getError());
-                    callback.onFailure(context.getException());
+                public void onFailure(final Throwable context) {
+                    logger.debug("Failed to process metadata: {}", context.getMessage());
+                    callback.onFailure(context);
                 }
 
                 @Override

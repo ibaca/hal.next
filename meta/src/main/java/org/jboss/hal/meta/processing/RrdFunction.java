@@ -53,7 +53,7 @@ class RrdFunction implements Function<FunctionContext> {
     }
 
     @Override
-    public void execute(final Control<FunctionContext> control) {
+    public void accept(final Control<FunctionContext> control) {
         dispatcher.executeInFunction(control, composite,
                 (CompositeResult compositeResult) -> {
                     try {

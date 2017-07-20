@@ -158,7 +158,7 @@ public class DataSourceWizard {
                         dispatcher.execute(operation,
                                 result -> success(dataSource),
                                 (op, failure) -> wizard.showError(resources.constants().operationFailed(),
-                                        resources.messages().dataSourceAddError(), failure));
+                                        resources.messages().dataSourceAddError(), failure.getMessage()));
                     } else {
                         if (context.hasChanges()) {
                             Composite operations = new OperationFactory().fromChangeSet(address, context.changes(),
@@ -166,7 +166,7 @@ public class DataSourceWizard {
                             dispatcher.execute(operations,
                                     (CompositeResult result) -> success(dataSource),
                                     (op, failure) -> wizard.showError(resources.constants().operationFailed(),
-                                            resources.messages().dataSourceAddError(), failure));
+                                            resources.messages().dataSourceAddError(), failure.getMessage()));
                         } else {
                             success(dataSource);
                         }

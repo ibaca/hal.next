@@ -253,9 +253,9 @@ public class StandaloneDeploymentColumn extends FinderColumn<Deployment> {
 
                     Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                                             @Override
-                                            public void onFailure(final FunctionContext functionContext) {
+                                            public void onFailure(final Throwable e) {
                                                 wzd.showError(resources.constants().deploymentError(),
-                                                        resources.messages().deploymentError(name), functionContext.getError());
+                                                        resources.messages().deploymentError(name), e.getMessage());
                                             }
 
                                             @Override

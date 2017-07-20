@@ -74,9 +74,9 @@ public class PathsAutoComplete extends AutoComplete {
             Async.single(Progress.NOOP, new FunctionContext(),
                     new Outcome<FunctionContext>() {
                         @Override
-                        public void onFailure(final FunctionContext context) {
+                        public void onFailure(final Throwable context) {
                             logger.error("Unable to update operation for paths type-ahead: " +
-                                    "Error reading running servers: {}", context.getError());
+                                    "Error reading running servers: {}", context.getMessage());
                             operation = defaultOperation();
                         }
 

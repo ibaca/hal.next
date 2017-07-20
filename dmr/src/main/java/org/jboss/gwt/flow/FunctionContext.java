@@ -33,13 +33,11 @@ public class FunctionContext {
 
     private final Stack<Object> stack;
     private final Map<String, Object> data;
-    private String error;
     private Throwable throwable;
 
     public FunctionContext() {
         this.stack = new Stack<>();
         this.data = new HashMap<>();
-        this.error = "n/a";
         this.throwable = new RuntimeException("n/a");
     }
 
@@ -82,22 +80,18 @@ public class FunctionContext {
         return (T) data.get(key);
     }
 
-    public void failed(final String error) {
-        if (error != null) {
-            this.error = error;
-            this.throwable = new RuntimeException(error);
-        }
-    }
-
-    public void failed(final Throwable throwable) {
+    public void failed(Throwable throwable) {
         if (throwable != null) {
-            this.error = throwable.getMessage();
             this.throwable = throwable;
         }
     }
 
+    public Throwable getThrowable() {
+        return throwable;
+    }
+
     public String getError() {
-        return error;
+        return throwable == null ? "n/a" : throwable.getMessage();
     }
 
     public Throwable getException() {
@@ -105,7 +99,7 @@ public class FunctionContext {
     }
 
     public boolean hasError() {
-        return error != null;
+        return throwable != null;
     }
 
     @Override

@@ -18,7 +18,8 @@
  */
 package org.jboss.gwt.flow;
 
+import java.util.function.Consumer;
+
 /** An execution delegate able to control the outcome. */
-public interface Function<C> {
-    void execute(Control<C> control);
-}
+@FunctionalInterface
+public interface Function<C> extends Consumer<Control<C>> {}

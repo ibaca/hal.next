@@ -24,7 +24,7 @@ import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
 
 /**
- * An outcome implementation which has a default implementation for the {@link Outcome#onFailure(Object)} method.
+ * An outcome implementation which has a default implementation for the {@link Outcome#onFailure} method.
  *
  * @author Harald Pehl
  */
@@ -42,8 +42,7 @@ public abstract class SuccessfulOutcome implements Outcome<FunctionContext> {
      * Emits a error message using the {@link Messages#lastOperationFailed()} error message.
      */
     @Override
-    public void onFailure(final FunctionContext context) {
-        MessageEvent
-                .fire(eventBus, Message.error(resources.messages().lastOperationFailed(), context.getError()));
+    public void onFailure(Throwable e) {
+        MessageEvent.fire(eventBus, Message.error(resources.messages().lastOperationFailed(), e.getMessage()));
     }
 }

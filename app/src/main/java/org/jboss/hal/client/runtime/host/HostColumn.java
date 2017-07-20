@@ -90,8 +90,8 @@ public class HostColumn extends FinderColumn<Host> implements HostActionHandler,
                 .itemsProvider((context, callback) -> Async
                         .series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                                     @Override
-                                    public void onFailure(final FunctionContext context1) {
-                                        callback.onFailure(context1.getException());
+                                    public void onFailure(final Throwable context1) {
+                                        callback.onFailure(context1);
                                     }
 
                                     @Override

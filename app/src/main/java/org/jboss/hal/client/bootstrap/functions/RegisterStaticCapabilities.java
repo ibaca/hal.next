@@ -44,7 +44,7 @@ public class RegisterStaticCapabilities implements BootstrapFunction {
 
     @Override
     @SuppressWarnings("HardCodedStringLiteral")
-    public void execute(final Control<FunctionContext> control) {
+    public void accept(final Control<FunctionContext> control) {
         if (!ManagementModel.supportsCapabilitiesRegistry(environment.getManagementVersion())) {
             logStart();
 

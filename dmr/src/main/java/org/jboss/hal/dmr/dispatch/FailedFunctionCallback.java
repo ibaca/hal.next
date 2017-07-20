@@ -26,10 +26,10 @@ public class FailedFunctionCallback<C extends FunctionContext> implements Dispat
 
     private final Control<C> control;
 
-    public FailedFunctionCallback(final Control<C> control) {this.control = control;}
+    public FailedFunctionCallback(Control<C> control) { this.control = control; }
 
     @Override
-    public void onFailed(final Operation operation, final String failure) {
+    public void onFailed(Operation operation, Throwable failure) {
         control.getContext().failed(failure);
         control.abort();
     }

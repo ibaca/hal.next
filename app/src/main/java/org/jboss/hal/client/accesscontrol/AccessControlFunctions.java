@@ -73,7 +73,7 @@ final class AccessControlFunctions {
 
         @Override
         @SuppressWarnings("Duplicates")
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (control.getContext().emptyStack()) {
                 control.proceed();
             } else {
@@ -106,7 +106,7 @@ final class AccessControlFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Operation operation = new Operation.Builder(AddressTemplates.roleMapping(role), WRITE_ATTRIBUTE_OPERATION)
                     .param(NAME, INCLUDE_ALL)
                     .param(VALUE, includeAll)
@@ -134,7 +134,7 @@ final class AccessControlFunctions {
 
         @Override
         @SuppressWarnings("Duplicates")
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (control.getContext().emptyStack()) {
                 control.proceed();
             } else {
@@ -169,7 +169,7 @@ final class AccessControlFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             ResourceAddress address = AddressTemplates.roleMapping(role)
                     .add(include ? INCLUDE : EXCLUDE, principal.getResourceName());
             Operation.Builder builder = new Operation.Builder(address, ADD)
@@ -198,7 +198,7 @@ final class AccessControlFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (assignments.isEmpty()) {
                 control.proceed();
             } else if (assignments.size() == 1) {
@@ -237,7 +237,7 @@ final class AccessControlFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             ResourceAddress address = AddressTemplates.scopedRole(new Role(name, null, type, null));
             Operation operation = new Operation.Builder(address, ADD)
                     .payload(payload)
@@ -266,7 +266,7 @@ final class AccessControlFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             ResourceAddress address = AddressTemplates.scopedRole(role);
             Operation operation = new OperationFactory().fromChangeSet(address, changedValues, metadata);
             dispatcher.executeInFunction(control, operation, result -> control.proceed());
@@ -288,7 +288,7 @@ final class AccessControlFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             ResourceAddress address = AddressTemplates.scopedRole(role);
             Operation operation = new Operation.Builder(address, REMOVE).build();
             dispatcher.executeInFunction(control, operation, result -> control.proceed());

@@ -65,7 +65,7 @@ class JdbcDriverFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             crud.readChildren(DATA_SOURCE_SUBSYSTEM_TEMPLATE, JDBC_DRIVER, children -> {
                 List<JdbcDriver> drivers = children.stream()
                         .map(JdbcDriver::new)
@@ -94,7 +94,7 @@ class JdbcDriverFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 ResourceAddress address = new ResourceAddress().add(SUBSYSTEM, DATASOURCES);
                 Operation operation = new Operation.Builder(address, "installed-drivers-list").build(); //NON-NLS
@@ -147,7 +147,7 @@ class JdbcDriverFunctions {
     static class CombineDriverResults implements Function<FunctionContext> {
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Map<String, JdbcDriver> map = new HashMap<>();
             List<JdbcDriver> configDrivers = control.getContext().get(JdbcDriverFunctions.CONFIGURATION_DRIVERS);
             List<JdbcDriver> runtimeDrivers = control.getContext().get(JdbcDriverFunctions.RUNTIME_DRIVERS);

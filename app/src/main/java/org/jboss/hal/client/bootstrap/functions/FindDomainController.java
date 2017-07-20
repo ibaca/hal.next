@@ -49,7 +49,7 @@ public class FindDomainController implements BootstrapFunction {
     }
 
     @Override
-    public void execute(final Control<FunctionContext> control) {
+    public void accept(final Control<FunctionContext> control) {
         logStart();
         if (environment.isStandalone()) {
             logDone();
@@ -65,7 +65,7 @@ public class FindDomainController implements BootstrapFunction {
                 List<Property> properties = result.asPropertyList();
                 if (properties.isEmpty()) {
                     // TODO Is this possible?
-                    control.getContext().failed("No hosts found!"); //NON-NLS
+                    control.getContext().failed(new Exception("No hosts found!")); //NON-NLS
                     control.abort();
 
                 } else {

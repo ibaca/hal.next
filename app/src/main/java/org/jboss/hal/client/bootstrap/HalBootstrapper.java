@@ -76,10 +76,10 @@ public class HalBootstrapper implements Bootstrapper {
 
         Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
             @Override
-            public void onFailure(final FunctionContext context) {
+            public void onFailure(final Throwable context) {
                 LoadingPanel.get().off();
-                logger.error("Bootstrap error: {}", context.getError());
-                document.body.appendChild(BootstrapFailed.create(context.getError(), endpoints).asElement());
+                logger.error("Bootstrap error: {}", context.getMessage());
+                document.body.appendChild(BootstrapFailed.create(context.getMessage(), endpoints).asElement());
             }
 
             @Override

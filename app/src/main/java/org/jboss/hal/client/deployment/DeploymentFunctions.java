@@ -92,7 +92,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Operation contentOp = new Operation.Builder(ResourceAddress.root(), READ_CHILDREN_RESOURCES_OPERATION)
                     .param(CHILD_TYPE, DEPLOYMENT)
                     .build();
@@ -155,7 +155,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 List<ServerGroupDeployment> serverGroupDeployments = Collections.emptyList();
                 control.getContext().set(SERVER_GROUP_DEPLOYMENTS, serverGroupDeployments);
@@ -217,7 +217,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 List<ServerGroupDeployment> serverGroupDeployments = Collections.emptyList();
                 control.getContext().set(SERVER_GROUP_DEPLOYMENTS, serverGroupDeployments);
@@ -254,7 +254,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 control.proceed();
 
@@ -305,7 +305,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Operation operation = new Operation.Builder(ResourceAddress.root(), READ_CHILDREN_NAMES_OPERATION)
                     .param(CHILD_TYPE, DEPLOYMENT)
                     .build();
@@ -349,8 +349,7 @@ class DeploymentFunctions {
             this.enabled = enabled;
         }
 
-        @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             boolean replace;
             Operation.Builder builder;
 
@@ -428,7 +427,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Operation operation = new Operation.Builder(new ResourceAddress().add(DEPLOYMENT, name), ADD)
                     .payload(payload)
                     .build();
@@ -453,7 +452,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void onFailure(final FunctionContext context) {
+        public void onFailure(final Throwable context) {
             MessageEvent
                     .fire(eventBus, Message.error(resources.messages().deploymentOpFailed(files.getLength())));
         }

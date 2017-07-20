@@ -50,6 +50,10 @@ public class Message {
         return error(id, message, null, sticky);
     }
 
+    public static Message error(final SafeHtml message, final Throwable error) {
+        return error(message, error.getMessage());
+    }
+
     public static Message error(final SafeHtml message, final String details) {
         return error(currentTimeMillis(), message, details, false);
     }

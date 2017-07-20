@@ -60,7 +60,7 @@ class HandlerFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             OperationFactory operationFactory = new OperationFactory();
             Composite operation = operationFactory
                     .fromChangeSet(AUDIT_LOG_TEMPLATE.resolve(statementContext), changedValues, metadata);
@@ -84,7 +84,7 @@ class HandlerFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Operation operation = new Operation.Builder(AUDIT_LOG_TEMPLATE.resolve(statementContext),
                     READ_CHILDREN_NAMES_OPERATION
             )
@@ -120,7 +120,7 @@ class HandlerFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Set<String> existingHandlers = control.getContext().pop();
             Set<String> add = Sets.difference(newHandlers, existingHandlers).immutableCopy();
             Set<String> remove = Sets.difference(existingHandlers, newHandlers).immutableCopy();

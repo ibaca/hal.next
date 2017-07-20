@@ -80,7 +80,7 @@ public class ReadEnvironment implements BootstrapFunction {
     }
 
     @Override
-    public void execute(final Control<FunctionContext> control) {
+    public void accept(final Control<FunctionContext> control) {
         logStart();
 
         List<Operation> ops = new ArrayList<>();

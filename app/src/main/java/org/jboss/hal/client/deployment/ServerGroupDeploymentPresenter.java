@@ -132,7 +132,7 @@ public class ServerGroupDeploymentPresenter extends
     protected void reload() {
         Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                     @Override
-                    public void onFailure(final FunctionContext context) {
+                    public void onFailure(final Throwable context) {
                         MessageEvent.fire(getEventBus(),
                                 Message.error(resources.messages().deploymentReadError(deployment)));
                     }

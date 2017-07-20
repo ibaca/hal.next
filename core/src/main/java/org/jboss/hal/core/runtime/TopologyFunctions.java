@@ -118,7 +118,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 List<Host> hosts = Collections.emptyList();
                 List<ServerGroup> serverGroups = Collections.emptyList();
@@ -172,7 +172,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 control.proceed();
             } else {
@@ -204,7 +204,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 control.proceed();
             } else {
@@ -241,7 +241,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 control.proceed();
             } else {
@@ -303,7 +303,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             ResourceAddress hostAddress = new ResourceAddress().add(ModelDescriptionConstants.HOST, hostName);
             Operation hostOp = new Operation.Builder(hostAddress, READ_RESOURCE_OPERATION)
                     .param(ATTRIBUTES_ONLY, true)
@@ -339,7 +339,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             Host host = control.getContext().get(HOST);
             if (host != null) {
                 readAndAddServerRuntimeAttributes(dispatcher, control, host.getServers());
@@ -370,7 +370,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 control.proceed();
             } else {
@@ -409,7 +409,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 control.proceed();
             } else {
@@ -471,7 +471,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             ResourceAddress serverGroupAddress = new ResourceAddress()
                     .add(ModelDescriptionConstants.SERVER_GROUP, serverGroupName);
             Operation serverGroupOp = new Operation.Builder(serverGroupAddress, READ_RESOURCE_OPERATION)
@@ -513,7 +513,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             ServerGroup serverGroup = control.getContext().get(SERVER_GROUP);
             if (serverGroup != null) {
                 readAndAddServerRuntimeAttributes(dispatcher, control, serverGroup.getServers());
@@ -546,7 +546,7 @@ public class TopologyFunctions {
         }
 
         @Override
-        public void execute(final Control<FunctionContext> control) {
+        public void accept(final Control<FunctionContext> control) {
             if (environment.isStandalone()) {
                 List<Server> servers = Collections.emptyList();
                 control.getContext().set(RUNNING_SERVERS, servers);

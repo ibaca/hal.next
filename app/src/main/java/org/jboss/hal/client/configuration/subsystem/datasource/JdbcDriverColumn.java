@@ -85,12 +85,11 @@ public class JdbcDriverColumn extends FinderColumn<JdbcDriver> {
             final Resources resources) {
 
         super(new FinderColumn.Builder<JdbcDriver>(finder, Ids.JDBC_DRIVER, Names.JDBC_DRIVER)
-
                 .itemsProvider((context, callback) -> {
                     Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
                         @Override
-                        public void onFailure(final FunctionContext context) {
-                            callback.onFailure(context.getException());
+                        public void onFailure(final Throwable error) {
+                            callback.onFailure(error);
                         }
 
                         @Override

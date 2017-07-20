@@ -138,8 +138,8 @@ public class ContentColumn extends FinderColumn<Content> {
                 .itemsProvider((context, callback) -> {
                     Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
                         @Override
-                        public void onFailure(final FunctionContext context) {
-                            callback.onFailure(context.getException());
+                        public void onFailure(final Throwable context) {
+                            callback.onFailure(context);
                         }
 
                         @Override
@@ -303,9 +303,9 @@ public class ContentColumn extends FinderColumn<Content> {
 
                     Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                                             @Override
-                                            public void onFailure(final FunctionContext functionContext) {
+                                            public void onFailure(final Throwable e) {
                                                 wzd.showError(resources.constants().uploadError(),
-                                                        resources.messages().uploadError(name), functionContext.getError());
+                                                        resources.messages().uploadError(name), e.getMessage());
                                             }
 
                                             @Override
@@ -350,10 +350,10 @@ public class ContentColumn extends FinderColumn<Content> {
                     if (valid) {
                         Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
                                                     @Override
-                                                    public void onFailure(final FunctionContext context) {
+                                                    public void onFailure(final Throwable context) {
                                                         MessageEvent.fire(eventBus, Message.error(
                                                                 resources.messages().contentReplaceError(content.getName()),
-                                                                context.getError()));
+                                                                context.getMessage()));
                                                     }
 
                                                     @Override

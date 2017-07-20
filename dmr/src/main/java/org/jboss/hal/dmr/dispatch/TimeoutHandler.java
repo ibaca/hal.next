@@ -93,7 +93,7 @@ public class TimeoutHandler {
                 (context) -> !timeout(context) && !context.conditionSatisfied,
                 new Outcome<TimeoutContext>() {
                     @Override
-                    public void onFailure(final TimeoutContext context) {
+                    public void onFailure(final Throwable context) {
                         logger.error("Operation {} ran into an error: {}", operation.asCli());
                         callback.onTimeout();
                     }
@@ -125,7 +125,7 @@ public class TimeoutHandler {
                 (context) -> !timeout(context) && !context.conditionSatisfied,
                 new Outcome<TimeoutContext>() {
                     @Override
-                    public void onFailure(final TimeoutContext context) {
+                    public void onFailure(final Throwable context) {
                         logger.error("Composite operation {} ran into an error", composite.asCli());
                         callback.onTimeout();
                     }

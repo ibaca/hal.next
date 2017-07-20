@@ -35,7 +35,7 @@ class MacroOperationFunction implements Function<FunctionContext> {
     }
 
     @Override
-    public void execute(final Control<FunctionContext> control) {
+    public void accept(final Control<FunctionContext> control) {
         dispatcher.executeInFunction(control, operation, result -> control.proceed());
     }
 }

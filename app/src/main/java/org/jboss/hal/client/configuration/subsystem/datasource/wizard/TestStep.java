@@ -153,12 +153,13 @@ class TestStep extends WizardStep<Context, State> {
             }
         });
 
+        FunctionContext context1 = new FunctionContext();
         Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
             @Override
-            public void onFailure(final FunctionContext context) {
-                String title = context.get(WIZARD_TITLE);
-                SafeHtml text = context.get(WIZARD_TEXT);
-                String error = context.get(WIZARD_ERROR);
+            public void onFailure(final Throwable e) {
+                String title = context1.get(WIZARD_TITLE);
+                SafeHtml text = context1.get(WIZARD_TEXT);
+                String error = context1.get(WIZARD_ERROR);
                 wizard().showError(title, text, error, false);
             }
 
@@ -168,6 +169,7 @@ class TestStep extends WizardStep<Context, State> {
                         resources.messages().testConnectionSuccess(dataSource.getName()), false);
             }
         };
-        Async.series(progress.get(), new FunctionContext(), outcome, functions.toArray(new Function[functions.size()]));
+
+        Async.series(progress.get(), context1, outcome, functions.toArray(new Function[functions.size()]));
     }
 }
