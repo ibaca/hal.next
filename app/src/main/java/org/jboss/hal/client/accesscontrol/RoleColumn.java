@@ -17,6 +17,7 @@ package org.jboss.hal.client.accesscontrol;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
@@ -24,7 +25,7 @@ import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.web.bindery.event.shared.EventBus;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.LabelBuilder;
@@ -292,27 +293,27 @@ public class RoleColumn extends FinderColumn<Role> {
                 .registerSuggestHandler(new ReadChildrenAutoComplete(dispatcher, statementContext, typeaheadTemplate));
 
         new AddResourceDialog(resources.messages().addResourceTitle(typeName), form, (name, model) -> {
-            List<Function<FunctionContext>> functions = new ArrayList<>();
-            functions.add(new AddScopedRole(dispatcher, type, name, model));
+            List<Consumer<Control<FunctionContext>>> tasks = new ArrayList<>();
+            tasks.add(new AddScopedRole(dispatcher, type, name, model));
             if (model.hasDefined(INCLUDE_ALL) && model.get(INCLUDE_ALL).asBoolean()) {
                 // We only need the role name in the functions,
                 // so it's ok to setup a transient role w/o the other attributes.
                 Role transientRole = new Role(name, null, type, null);
-                functions.add(new CheckRoleMapping(dispatcher, transientRole));
-                functions.add(new AddRoleMapping(dispatcher, transientRole, status -> status == 404));
-                functions.add(new ModifyIncludeAll(dispatcher, transientRole, true));
+                tasks.add(new CheckRoleMapping(dispatcher, transientRole));
+                tasks.add(new AddRoleMapping(dispatcher, transientRole, status -> status == 404));
+                tasks.add(new ModifyIncludeAll(dispatcher, transientRole, true));
             }
-            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                MessageEvent.fire(eventBus,
-                                        Message.success(resources.messages().addResourceSuccess(typeName, name)));
-                                accessControl.reload(() -> {
-                                    refresh(Ids.role(name));
-                                    eventBus.fireEvent(new RolesChangedEvent());
-                                });
-                            }
-                        }, functions.toArray(new Function[functions.size()]));
+            Async.series(progress.get(), new FunctionContext(), tasks)
+                    .subscribe(new SuccessfulOutcome(eventBus, resources) {
+                        @Override public void onSuccess(FunctionContext n) {
+                            MessageEvent.fire(eventBus,
+                                    Message.success(resources.messages().addResourceSuccess(typeName, name)));
+                            accessControl.reload(() -> {
+                                refresh(Ids.role(name));
+                                eventBus.fireEvent(new RolesChangedEvent());
+                            });
+                        }
+                    });
         }).show();
     }
 
@@ -332,20 +333,20 @@ public class RoleColumn extends FinderColumn<Role> {
         modelNode.get(INCLUDE_ALL).set(role.isIncludeAll());
         new ModifyResourceDialog(resources.messages().modifyResourceTitle(resources.constants().role()),
                 form, (frm, changedValues) -> {
-            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                                @Override
-                                public void onSuccess(final FunctionContext context) {
-                                    MessageEvent.fire(eventBus, Message.success(resources.messages()
-                                            .modifyResourceSuccess(resources.constants().role(), role.getName())));
-                                    accessControl.reload(() -> {
-                                        refresh(role.getId());
-                                        eventBus.fireEvent(new RolesChangedEvent());
-                                    });
-                                }
-                            },
+            Async.series(progress.get(), new FunctionContext(),
                     new CheckRoleMapping(dispatcher, role),
                     new AddRoleMapping(dispatcher, role, status -> status == 404),
-                    new ModifyIncludeAll(dispatcher, role, frm.getModel().get(INCLUDE_ALL).asBoolean()));
+                    new ModifyIncludeAll(dispatcher, role, frm.getModel().get(INCLUDE_ALL).asBoolean())
+            ).subscribe(new SuccessfulOutcome(eventBus, resources) {
+                @Override public void onSuccess(final FunctionContext context) {
+                    MessageEvent.fire(eventBus, Message.success(resources.messages()
+                            .modifyResourceSuccess(resources.constants().role(), role.getName())));
+                    accessControl.reload(() -> {
+                        refresh(role.getId());
+                        eventBus.fireEvent(new RolesChangedEvent());
+                    });
+                }
+            });
         })
                 .show(modelNode);
         form.getFormItem(NAME).setValue(role.getName());
@@ -378,25 +379,24 @@ public class RoleColumn extends FinderColumn<Role> {
             boolean includesAll = (boolean) changedValues.getOrDefault(INCLUDE_ALL, false);
             changedValues.remove(INCLUDE_ALL); // must not be in changedValues when calling ModifyScopedRole
 
-            List<Function<FunctionContext>> functions = new ArrayList<>();
-            functions.add(new ModifyScopedRole(dispatcher, role, changedValues, metadata));
+            List<Consumer<Control<FunctionContext>>> tasks = new ArrayList<>();
+            tasks.add(new ModifyScopedRole(dispatcher, role, changedValues, metadata));
             if (hasIncludesAll) {
-                functions.add(new CheckRoleMapping(dispatcher, role));
-                functions.add(new AddRoleMapping(dispatcher, role, status -> status == 404));
-                functions.add(new ModifyIncludeAll(dispatcher, role, includesAll));
+                tasks.add(new CheckRoleMapping(dispatcher, role));
+                tasks.add(new AddRoleMapping(dispatcher, role, status -> status == 404));
+                tasks.add(new ModifyIncludeAll(dispatcher, role, includesAll));
             }
-            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                MessageEvent.fire(eventBus,
-                                        Message.success(resources.messages().modifyResourceSuccess(type, role.getName())));
-                                accessControl.reload(() -> {
-                                    refresh(role.getId());
-                                    eventBus.fireEvent(new RolesChangedEvent());
-                                });
-                            }
-                        },
-                    functions.toArray(new Function[functions.size()]));
+            Async.series(progress.get(), new FunctionContext(), tasks)
+                    .subscribe(new SuccessfulOutcome(eventBus, resources) {
+                        @Override public void onSuccess(final FunctionContext context) {
+                            MessageEvent.fire(eventBus,
+                                    Message.success(resources.messages().modifyResourceSuccess(type, role.getName())));
+                            accessControl.reload(() -> {
+                                refresh(role.getId());
+                                eventBus.fireEvent(new RolesChangedEvent());
+                            });
+                        }
+                    });
         }).show(modelNode);
     }
 
@@ -404,18 +404,18 @@ public class RoleColumn extends FinderColumn<Role> {
     // ------------------------------------------------------ remove roles
 
     private void removeScopedRole(Role role, final String type) {
-        List<Function<FunctionContext>> functions = new ArrayList<>();
+        List<Consumer<Control<FunctionContext>>> tasks = new ArrayList<>();
         List<Assignment> assignments = accessControl.assignments().byRole(role).collect(toList());
         if (!assignments.isEmpty()) {
-            functions.add(new RemoveAssignments(dispatcher, assignments));
+            tasks.add(new RemoveAssignments(dispatcher, assignments));
         }
-        functions.add(new CheckRoleMapping(dispatcher, role));
-        functions.add(new RemoveRoleMapping(dispatcher, role, status -> status == 200));
-        functions.add(new RemoveScopedRole(dispatcher, role));
+        tasks.add(new CheckRoleMapping(dispatcher, role));
+        tasks.add(new RemoveRoleMapping(dispatcher, role, status -> status == 200));
+        tasks.add(new RemoveScopedRole(dispatcher, role));
 
-        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                    @Override
-                    public void onSuccess(final FunctionContext context) {
+        Async.series(progress.get(), new FunctionContext(), tasks)
+                .subscribe(new SuccessfulOutcome(eventBus, resources) {
+                    @Override public void onSuccess(final FunctionContext context) {
                         MessageEvent.fire(eventBus,
                                 Message.success(resources.messages().removeResourceSuccess(type, role.getName())));
                         accessControl.reload(() -> {
@@ -423,7 +423,6 @@ public class RoleColumn extends FinderColumn<Role> {
                             eventBus.fireEvent(new RolesChangedEvent());
                         });
                     }
-                },
-                functions.toArray(new Function[functions.size()]));
+                });
     }
 }

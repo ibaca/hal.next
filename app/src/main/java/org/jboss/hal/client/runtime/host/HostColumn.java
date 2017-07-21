@@ -30,7 +30,6 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.config.Environment;
 import org.jboss.hal.core.finder.ColumnActionFactory;
@@ -60,6 +59,7 @@ import org.jboss.hal.resources.Resources;
 import org.jboss.hal.spi.Column;
 import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Requires;
+import rx.SingleSubscriber;
 
 /**
  * @author Harald Pehl
@@ -87,27 +87,26 @@ public class HostColumn extends FinderColumn<Host> implements HostActionHandler,
 
                 .columnAction(columnActionFactory.refresh(Ids.HOST_REFRESH))
 
-                .itemsProvider((context, callback) -> Async
-                        .series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
-                                    @Override
-                                    public void onFailure(final Throwable context1) {
-                                        callback.onFailure(context1);
-                                    }
+                .itemsProvider((context, callback) -> Async.series(progress.get(), new FunctionContext(),
+                        new TopologyFunctions.HostsWithServerConfigs(environment, dispatcher),
+                        new TopologyFunctions.HostsStartedServers(environment, dispatcher)).subscribe(new SingleSubscriber<FunctionContext>() {
+                                                    @Override
+                                                    public void onError(final Throwable context1) {
+                                                        callback.onFailure(context1);
+                                                    }
 
-                                    @Override
-                                    public void onSuccess(final FunctionContext context1) {
-                                        List<Host> hosts = context1.get(TopologyFunctions.HOSTS);
-                                        callback.onSuccess(hosts);
+                                                    @Override
+                                                    public void onSuccess(final FunctionContext context1) {
+                                                        List<Host> hosts = context1.get(TopologyFunctions.HOSTS);
+                                                        callback.onSuccess(hosts);
 
-                                        // Restore pending visualization
-                                        hosts.stream()
-                                                .filter(hostActions::isPending)
-                                                .forEach(host -> ItemMonitor
-                                                        .startProgress(Ids.host(host.getAddressName())));
-                                    }
-                                },
-                                new TopologyFunctions.HostsWithServerConfigs(environment, dispatcher),
-                                new TopologyFunctions.HostsStartedServers(environment, dispatcher)))
+                                                        // Restore pending visualization
+                                                        hosts.stream()
+                                                                .filter(hostActions::isPending)
+                                                                .forEach(host -> ItemMonitor
+                                                                        .startProgress(Ids.host(host.getAddressName())));
+                                                    }
+                                                }))
 
                 .onItemSelect(host -> eventBus.fireEvent(new HostSelectionEvent(host.getAddressName())))
                 .onPreview(item -> new HostPreview(hostActions, item, resources))

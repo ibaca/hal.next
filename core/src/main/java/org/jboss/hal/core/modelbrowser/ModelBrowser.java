@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
@@ -31,9 +32,7 @@ import org.jboss.gwt.elemento.core.Elements;
 import org.jboss.gwt.elemento.core.IsElement;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.form.Form;
 import org.jboss.hal.ballroom.form.Form.FinishReset;
@@ -62,6 +61,7 @@ import org.jboss.hal.spi.MessageEvent;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.SingleSubscriber;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -115,7 +115,7 @@ public class ModelBrowser implements IsElement<HTMLElement> {
     }
 
 
-    private class OpenNodeFunction implements Function<FunctionContext> {
+    private class OpenNodeFunction implements Consumer<Control<FunctionContext>> {
 
         private final String id;
 
@@ -300,9 +300,9 @@ public class ModelBrowser implements IsElement<HTMLElement> {
             List<OpenNodeFunction> functions = previousFilter.parents.stream()
                     .map(OpenNodeFunction::new)
                     .collect(toList());
-            Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
+            SingleSubscriber<FunctionContext> outcome = new SingleSubscriber<FunctionContext>() {
                 @Override
-                public void onFailure(final Throwable context) {
+                public void onError(final Throwable context) {
                     logger.debug("Failed to restore selection {}", previousFilter.parents);
                 }
 
@@ -311,8 +311,7 @@ public class ModelBrowser implements IsElement<HTMLElement> {
                     tree.select(previousFilter.node.id, false);
                 }
             };
-            Async.series(progress.get(), new FunctionContext(), outcome,
-                    functions.toArray(new Function[functions.size()]));
+            Async.series(progress.get(), new FunctionContext(), functions).subscribe(outcome);
         }
     }
 

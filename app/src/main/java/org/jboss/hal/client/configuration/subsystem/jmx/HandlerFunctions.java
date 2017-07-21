@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.hal.dmr.ModelNode;
 import org.jboss.hal.dmr.dispatch.Dispatcher;
@@ -44,7 +43,8 @@ import static org.jboss.hal.dmr.ModelDescriptionConstants.*;
  */
 class HandlerFunctions {
 
-    static class SaveAuditLog implements Function<FunctionContext> {
+    static class SaveAuditLog implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final StatementContext statementContext;
@@ -73,7 +73,8 @@ class HandlerFunctions {
     }
 
 
-    static class ReadHandlers implements Function<FunctionContext> {
+    static class ReadHandlers implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final StatementContext statementContext;
@@ -106,7 +107,8 @@ class HandlerFunctions {
     }
 
 
-    static class MergeHandler implements Function<FunctionContext> {
+    static class MergeHandler implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final StatementContext statementContext;

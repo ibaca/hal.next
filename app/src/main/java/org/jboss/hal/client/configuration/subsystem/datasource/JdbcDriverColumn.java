@@ -17,14 +17,15 @@ package org.jboss.hal.client.configuration.subsystem.datasource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
 import com.google.web.bindery.event.shared.EventBus;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.form.Form;
 import org.jboss.hal.config.Environment;
@@ -86,9 +87,9 @@ public class JdbcDriverColumn extends FinderColumn<JdbcDriver> {
 
         super(new FinderColumn.Builder<JdbcDriver>(finder, Ids.JDBC_DRIVER, Names.JDBC_DRIVER)
                 .itemsProvider((context, callback) -> {
-                    Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
+                    rx.SingleSubscriber<FunctionContext> outcome = new rx.SingleSubscriber<FunctionContext>() {
                         @Override
-                        public void onFailure(final Throwable error) {
+                        public void onError(final Throwable error) {
                             callback.onFailure(error);
                         }
 
@@ -97,13 +98,14 @@ public class JdbcDriverColumn extends FinderColumn<JdbcDriver> {
                             callback.onSuccess(context.get(JdbcDriverFunctions.DRIVERS));
                         }
                     };
-                    Async.series(progress.get(), new FunctionContext(), outcome,
+                    Async.series(progress.get(), new FunctionContext(),
                             new JdbcDriverFunctions.ReadConfiguration(crud),
                             new TopologyFunctions.RunningServersQuery(environment, dispatcher,
                                     environment.isStandalone() ? null
                                             : new ModelNode().set(PROFILE_NAME, statementContext.selectedProfile())),
                             new JdbcDriverFunctions.ReadRuntime(environment, dispatcher),
-                            new JdbcDriverFunctions.CombineDriverResults());
+                            new JdbcDriverFunctions.CombineDriverResults()
+                    ).subscribe(outcome);
                 })
                 .withFilter()
         );

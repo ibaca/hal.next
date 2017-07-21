@@ -26,9 +26,7 @@ import com.gwtplatform.mvp.client.proxy.PlaceManager;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.client.deployment.DeploymentFunctions.LoadDeploymentsFromRunningServer;
 import org.jboss.hal.client.deployment.DeploymentFunctions.ReadServerGroupDeployments;
@@ -53,6 +51,7 @@ import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
 import org.jboss.hal.spi.Requires;
+import rx.SingleSubscriber;
 
 import static org.jboss.hal.client.deployment.ContentColumn.CONTENT_ADDRESS;
 import static org.jboss.hal.client.deployment.ServerGroupDeploymentColumn.SERVER_GROUP_DEPLOYMENT_ADDRESS;
@@ -130,9 +129,12 @@ public class ServerGroupDeploymentPresenter extends
 
     @Override
     protected void reload() {
-        Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+        Async.series(progress.get(), new FunctionContext(),
+                new ReadServerGroupDeployments(environment, dispatcher, serverGroup, deployment),
+                new RunningServersQuery(environment, dispatcher, new ModelNode().set(SERVER_GROUP, serverGroup)),
+                new LoadDeploymentsFromRunningServer(environment, dispatcher)).subscribe(new SingleSubscriber<FunctionContext>() {
                     @Override
-                    public void onFailure(final Throwable context) {
+                    public void onError(final Throwable context) {
                         MessageEvent.fire(getEventBus(),
                                 Message.error(resources.messages().deploymentReadError(deployment)));
                     }
@@ -149,10 +151,7 @@ public class ServerGroupDeploymentPresenter extends
                                     Message.error(resources.messages().deploymentReadError(deployment)));
                         }
                     }
-                },
-                new ReadServerGroupDeployments(environment, dispatcher, serverGroup, deployment),
-                new RunningServersQuery(environment, dispatcher, new ModelNode().set(SERVER_GROUP, serverGroup)),
-                new LoadDeploymentsFromRunningServer(environment, dispatcher));
+                });
     }
 
     void goToServerGroup() {

@@ -24,7 +24,6 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.hal.config.Environment;
 import org.jboss.hal.core.runtime.group.ServerGroup;
@@ -107,7 +106,8 @@ public class TopologyFunctions {
      * resource attributes attributes.
      * </ul>
      */
-    public static class Topology implements Function<FunctionContext> {
+    public static class Topology implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -161,7 +161,8 @@ public class TopologyFunctions {
      * Adds the {@code server} resource attributes and the server bootstrap errors for started servers. Expects a list
      * of servers in the context as provided by {@link Topology}.
      */
-    public static class TopologyStartedServers implements Function<FunctionContext> {
+    public static class TopologyStartedServers implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -193,7 +194,8 @@ public class TopologyFunctions {
      * <p>
      * The list of hosts is available in the context under the key {@link #HOSTS}.
      */
-    public static class HostsWithServerConfigs implements Function<FunctionContext> {
+    public static class HostsWithServerConfigs implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -230,7 +232,8 @@ public class TopologyFunctions {
      * Reads the {@code server} resource attributes for started servers across hosts. Expects a list of hosts in the
      * context as provided by {@link HostsWithServerConfigs}.
      */
-    public static class HostsStartedServers implements Function<FunctionContext> {
+    public static class HostsStartedServers implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -292,7 +295,8 @@ public class TopologyFunctions {
      * <p>
      * The host is available in the context under the key {@link #HOST}.
      */
-    public static class HostWithServerConfigs implements Function<FunctionContext> {
+    public static class HostWithServerConfigs implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final String hostName;
         private final Dispatcher dispatcher;
@@ -330,7 +334,8 @@ public class TopologyFunctions {
      * Reads the {@code server} resource attributes for started servers of a host. Expects the host in the context
      * as provided by {@link HostWithServerConfigs}.
      */
-    public static class HostStartedServers implements Function<FunctionContext> {
+    public static class HostStartedServers implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
 
@@ -359,7 +364,8 @@ public class TopologyFunctions {
      * <p>
      * The list of server groups is available in the context under the key {@link #SERVER_GROUPS}.
      */
-    public static class ServerGroupsWithServerConfigs implements Function<FunctionContext> {
+    public static class ServerGroupsWithServerConfigs implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -398,7 +404,8 @@ public class TopologyFunctions {
      * Reads the {@code server} resource attributes for started servers across server groups. Expects a list of server
      * groups in the context as provided by {@link ServerGroupsWithServerConfigs}.
      */
-    public static class ServerGroupsStartedServers implements Function<FunctionContext> {
+    public static class ServerGroupsStartedServers implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -460,7 +467,8 @@ public class TopologyFunctions {
      * <p>
      * The server group is available in the context under the key {@link #SERVER_GROUP}.
      */
-    public static class ServerGroupWithServerConfigs implements Function<FunctionContext> {
+    public static class ServerGroupWithServerConfigs implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final String serverGroupName;
         private final Dispatcher dispatcher;
@@ -504,7 +512,8 @@ public class TopologyFunctions {
      * Reads the {@code server} resource attributes for started servers of a server groups. Expects the server group in
      * the context as provided by {@link ServerGroupWithServerConfigs}.
      */
-    public static class ServerGroupStartedServers implements Function<FunctionContext> {
+    public static class ServerGroupStartedServers implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
 
@@ -532,7 +541,8 @@ public class TopologyFunctions {
      * the key {@link TopologyFunctions#RUNNING_SERVERS}. Stores an empty list if there are no running servers or if
      * running in standalone mode.
      */
-    public static class RunningServersQuery implements Function<FunctionContext> {
+    public static class RunningServersQuery implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;

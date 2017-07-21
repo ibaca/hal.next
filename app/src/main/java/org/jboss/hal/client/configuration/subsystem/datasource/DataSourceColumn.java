@@ -18,6 +18,7 @@ package org.jboss.hal.client.configuration.subsystem.datasource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
@@ -26,9 +27,8 @@ import com.google.web.bindery.event.shared.EventBus;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.client.configuration.subsystem.datasource.wizard.DataSourceWizard;
 import org.jboss.hal.config.Environment;
@@ -231,7 +231,7 @@ public class DataSourceColumn extends FinderColumn<DataSource> {
     }
 
     private void prepareWizard(final boolean xa) {
-        Function<FunctionContext> readDataSources =
+        Consumer<Control<FunctionContext>> readDataSources =
                 control -> crud.readChildren(DATA_SOURCE_SUBSYSTEM_TEMPLATE, xa ? XA_DATA_SOURCE : DATA_SOURCE,
                         children -> {
                             List<DataSource> dataSources = children.stream()
@@ -240,29 +240,23 @@ public class DataSourceColumn extends FinderColumn<DataSource> {
                             control.proceed();
                         });
 
-        Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
-            @Override
-            public void onFailure(final Throwable context) {
+        Async.series(progress.get(), new FunctionContext(), readDataSources,
+                new JdbcDriverFunctions.ReadConfiguration(crud),
+                new TopologyFunctions.RunningServersQuery(environment, dispatcher, environment.isStandalone() ? null
+                        : new ModelNode().set(PROFILE_NAME, statementContext.selectedProfile())),
+                new JdbcDriverFunctions.ReadRuntime(environment, dispatcher),
+                new JdbcDriverFunctions.CombineDriverResults()
+        ).subscribe(new rx.SingleSubscriber<FunctionContext>() {
+            @Override public void onError(final Throwable context) {
                 showWizard(Collections.emptyList(), Collections.emptyList(), xa);
             }
 
-            @Override
-            public void onSuccess(final FunctionContext context) {
+            @Override public void onSuccess(final FunctionContext context) {
                 List<DataSource> dataSources = context.get(DATASOURCES);
                 List<JdbcDriver> drivers = context.get(JdbcDriverFunctions.DRIVERS);
                 showWizard(dataSources, drivers, xa);
             }
-        };
-
-        Async.series(progress.get(), new FunctionContext(), outcome,
-                readDataSources,
-                new JdbcDriverFunctions.ReadConfiguration(crud),
-                new TopologyFunctions.RunningServersQuery(environment, dispatcher,
-                        environment.isStandalone()
-                                ? null
-                                : new ModelNode().set(PROFILE_NAME, statementContext.selectedProfile())),
-                new JdbcDriverFunctions.ReadRuntime(environment, dispatcher),
-                new JdbcDriverFunctions.CombineDriverResults());
+        });
     }
 
     private void showWizard(List<DataSource> dataSources, List<JdbcDriver> drivers, final boolean xa) {

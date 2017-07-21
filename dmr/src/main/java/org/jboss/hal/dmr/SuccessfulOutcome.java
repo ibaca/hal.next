@@ -17,18 +17,17 @@ package org.jboss.hal.dmr;
 
 import com.google.web.bindery.event.shared.EventBus;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.hal.resources.Messages;
 import org.jboss.hal.resources.Resources;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
 
 /**
- * An outcome implementation which has a default implementation for the {@link Outcome#onFailure} method.
+ * An outcome implementation which has a default implementation for the {@link SuccessfulOutcome#onError} method.
  *
  * @author Harald Pehl
  */
-public abstract class SuccessfulOutcome implements Outcome<FunctionContext> {
+public abstract class SuccessfulOutcome extends rx.SingleSubscriber<FunctionContext> {
 
     private final EventBus eventBus;
     private final Resources resources;
@@ -42,7 +41,7 @@ public abstract class SuccessfulOutcome implements Outcome<FunctionContext> {
      * Emits a error message using the {@link Messages#lastOperationFailed()} error message.
      */
     @Override
-    public void onFailure(Throwable e) {
+    public void onError(Throwable e) {
         MessageEvent.fire(eventBus, Message.error(resources.messages().lastOperationFailed(), e.getMessage()));
     }
 }

@@ -16,7 +16,6 @@
 package org.jboss.hal.meta.processing;
 
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.hal.dmr.dispatch.Dispatcher;
 import org.jboss.hal.dmr.Composite;
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Harald Pehl
  */
-class RrdFunction implements Function<FunctionContext> {
+class RrdFunction implements java.util.function.Consumer<Control<FunctionContext>> {
 
     @NonNls private static final Logger logger = LoggerFactory.getLogger(RrdFunction.class);
 

@@ -39,15 +39,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.jboss.gwt.elemento.core.Elements;
 import org.jboss.gwt.elemento.core.IsElement;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.Attachable;
 import org.jboss.hal.config.Environment;
@@ -59,6 +59,7 @@ import org.jboss.hal.spi.Footer;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.SingleSubscriber;
 
 /**
  * The one and only finder which is shared across all different top level categories in HAL. The very same finder
@@ -72,7 +73,7 @@ public class Finder implements IsElement, Attachable {
     /**
      * Function used in {@link #select(String, FinderPath, Runnable)} to select one segment in a finder path.
      */
-    private class SelectFunction implements Function<FunctionContext> {
+    private class SelectFunction implements Consumer<Control<FunctionContext>> {
 
         private final FinderSegment segment;
 
@@ -112,7 +113,7 @@ public class Finder implements IsElement, Attachable {
         }
     }
 
-    private class RefreshFunction implements Function<FunctionContext> {
+    private class RefreshFunction implements Consumer<Control<FunctionContext>> {
 
         private final FinderSegment segment;
 
@@ -475,19 +476,13 @@ public class Finder implements IsElement, Attachable {
      */
     public void refresh(FinderPath path) {
         if (!path.isEmpty()) {
+            List<RefreshFunction> tasks = StreamSupport.stream(path.spliterator(), false)
+                    .map(RefreshFunction::new).collect(toList());
+            Async.series(progress.get(), new FunctionContext(), tasks)
+                    .subscribe(new SingleSubscriber<FunctionContext>() {
+                        @Override public void onError(final Throwable context1) {}
 
-            int index = 0;
-            Function[] functions = new Function[path.size()];
-            for (FinderSegment segment : path) {
-                functions[index] = new RefreshFunction(segment);
-                index++;
-            }
-            Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
-                        @Override
-                        public void onFailure(final Throwable context1) {}
-
-                        @Override
-                        public void onSuccess(final FunctionContext context1) {
+                        @Override public void onSuccess(final FunctionContext context1) {
                             if (!context1.emptyStack()) {
                                 FinderColumn column1 = context1.pop();
                                 if (column1.selectedRow() != null) {
@@ -495,8 +490,7 @@ public class Finder implements IsElement, Attachable {
                                 }
                             }
                         }
-                    },
-                    functions);
+                    });
         }
     }
 
@@ -545,39 +539,33 @@ public class Finder implements IsElement, Attachable {
                 }
             }
 
-            int index = 0;
-            Function[] functions = new Function[path.size()];
-            for (FinderSegment segment : path) {
-                // work with a copy of segment!
-                functions[index] = new SelectFunction(new FinderSegment(segment.getColumnId(), segment.getItemId()));
-                index++;
-            }
+            List<SelectFunction> tasks = StreamSupport.stream(path.spliterator(), false)
+                    .map(segment -> new SelectFunction(new FinderSegment(segment.getColumnId(), segment.getItemId())))
+                    .collect(toList());
             FunctionContext context = new FunctionContext();
-            Async.series(progress.get(), context, new Outcome<FunctionContext>() {
-                @Override
-                public void onFailure(final Throwable error) {
-                    if (Finder.this.context.getPath().isEmpty()) {
-                        fallback.run();
+            Async.series(progress.get(), context, tasks)
+                    .subscribe(new SingleSubscriber<FunctionContext>() {
+                        @Override public void onError(final Throwable error) {
+                            if (Finder.this.context.getPath().isEmpty()) {
+                                fallback.run();
 
-                    } else if (!context.emptyStack()) {
-                        FinderColumn column1 = context.pop();
-                        markHiddenColumns(); // only in case of an error!
-                        f1nally(column1);
-                    }
-                }
+                            } else if (!context.emptyStack()) {
+                                FinderColumn column1 = context.pop();
+                                markHiddenColumns(); // only in case of an error!
+                                f1nally(column1);
+                            }
+                        }
 
-                @Override
-                public void onSuccess(final FunctionContext context1) {
-                    FinderColumn column1 = context1.pop();
-                    f1nally(column1);
-                }
+                        @Override public void onSuccess(final FunctionContext context1) {
+                            f1nally(context1.pop());
+                        }
 
-                @SuppressWarnings("SpellCheckingInspection")
-                private void f1nally(FinderColumn column1) {
-                    column1.asElement().focus();
-                    column1.refresh(RefreshMode.RESTORE_SELECTION);
-                }
-            }, functions);
+                        @SuppressWarnings("SpellCheckingInspection")
+                        private void f1nally(FinderColumn column1) {
+                            column1.asElement().focus();
+                            column1.refresh(RefreshMode.RESTORE_SELECTION);
+                        }
+                    });
         }
     }
 

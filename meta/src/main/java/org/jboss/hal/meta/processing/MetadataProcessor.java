@@ -24,15 +24,15 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import jsinterop.annotations.JsFunction;
 import jsinterop.annotations.JsIgnore;
 import jsinterop.annotations.JsMethod;
 import jsinterop.annotations.JsType;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.config.Environment;
 import org.jboss.hal.dmr.Composite;
@@ -49,6 +49,7 @@ import org.jboss.hal.spi.EsParam;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.SingleSubscriber;
 
 /**
  * Reads resource {@link Metadata} using read-resource-description operations and stores it into the {@link
@@ -166,9 +167,9 @@ public class MetadataProcessor {
                     .collect(toList());
 
             logger.debug("About to execute {} composite operations", composites.size() + optionalComposites.size());
-            Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
+            SingleSubscriber<FunctionContext> outcome = new SingleSubscriber<FunctionContext>() {
                 @Override
-                public void onFailure(final Throwable context) {
+                public void onError(final Throwable context) {
                     logger.debug("Failed to process metadata: {}", context.getMessage());
                     callback.onFailure(context);
                 }
@@ -184,12 +185,12 @@ public class MetadataProcessor {
             allFunctions.addAll(functions);
             allFunctions.addAll(optionalFunctions);
             if (functions.size() == 1) {
-                Async.single(progress, new FunctionContext(), outcome, allFunctions.get(0));
+                Async.single(progress, new FunctionContext(), allFunctions.get(0)).subscribe(outcome);
             } else {
                 // Unfortunately we cannot use Async.parallel() here unless someone finds a way
                 // to unambiguously map parallel r-r-d operations to their results (multiple "step-1" results)
-                Async.series(progress, new FunctionContext(), outcome,
-                        allFunctions.toArray(new RrdFunction[allFunctions.size()]));
+                Consumer<Control<FunctionContext>>[] functions1 = allFunctions.toArray(new RrdFunction[allFunctions.size()]);
+                Async.series(progress, new FunctionContext(), functions1).subscribe(outcome);
             }
         }
     }

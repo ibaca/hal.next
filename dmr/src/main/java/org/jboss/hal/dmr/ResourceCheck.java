@@ -16,7 +16,6 @@
 package org.jboss.hal.dmr;
 
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.hal.dmr.dispatch.Dispatcher;
 
@@ -28,7 +27,7 @@ import static org.jboss.hal.dmr.ModelDescriptionConstants.READ_RESOURCE_OPERATIO
  *
  * @author Harald Pehl
  */
-public class ResourceCheck implements Function<FunctionContext> {
+public class ResourceCheck implements java.util.function.Consumer<Control<FunctionContext>> {
 
     private final Dispatcher dispatcher;
     private final ResourceAddress address;

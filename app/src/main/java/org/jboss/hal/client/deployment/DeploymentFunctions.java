@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import javax.inject.Provider;
 
 import com.google.common.collect.Lists;
@@ -29,9 +30,7 @@ import elemental2.dom.File;
 import elemental2.dom.FileList;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.config.Environment;
 import org.jboss.hal.core.finder.FinderColumn;
@@ -50,6 +49,7 @@ import org.jboss.hal.spi.MessageEvent;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.SingleSubscriber;
 
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
@@ -73,7 +73,7 @@ class DeploymentFunctions {
     /**
      * Loads the contents form the content repository and pushes a {@code List<Content>} onto the context stack.
      */
-    static class LoadContent implements Function<FunctionContext> {
+    static class LoadContent implements Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final String serverGroup;
@@ -134,7 +134,7 @@ class DeploymentFunctions {
      * DeploymentFunctions#SERVER_GROUP_DEPLOYMENTS}. Stores an empty list if there are no deployments or if
      * running in standalone mode.
      */
-    static class ReadServerGroupDeployments implements Function<FunctionContext> {
+    static class ReadServerGroupDeployments implements Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -199,7 +199,7 @@ class DeploymentFunctions {
     /**
      * Deploys the specified content to the specified server group. The deployment is not enable on the server group.
      */
-    static class AddServerGroupDeployment implements Function<FunctionContext> {
+    static class AddServerGroupDeployment implements Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -243,7 +243,8 @@ class DeploymentFunctions {
      * key {@link #SERVER_GROUP_DEPLOYMENTS} in the context. Updates all matching deployments with the deployments from
      * the running server.
      */
-    static class LoadDeploymentsFromRunningServer implements Function<FunctionContext> {
+    static class LoadDeploymentsFromRunningServer implements
+            Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -294,7 +295,7 @@ class DeploymentFunctions {
      * Checks whether a deployment with the given name exists and pushes {@code 200} to the context stack if it exists,
      * {@code 404} otherwise.
      */
-    static class CheckDeployment implements Function<FunctionContext> {
+    static class CheckDeployment implements Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final String name;
@@ -330,7 +331,7 @@ class DeploymentFunctions {
      * The function puts an {@link UploadStatistics} under the key {@link DeploymentFunctions#UPLOAD_STATISTICS}
      * into the context.
      */
-    static class UploadOrReplace implements Function<FunctionContext> {
+    static class UploadOrReplace implements Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -414,7 +415,7 @@ class DeploymentFunctions {
     /**
      * Adds an unmanaged deployment.
      */
-    static class AddUnmanagedDeployment implements Function<FunctionContext> {
+    static class AddUnmanagedDeployment implements Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final String name;
@@ -435,8 +436,7 @@ class DeploymentFunctions {
         }
     }
 
-
-    private static class UploadOutcome<T> implements Outcome<FunctionContext> {
+    private static class UploadOutcome<T> extends SingleSubscriber<FunctionContext> {
 
         private final FinderColumn<T> column;
         private final EventBus eventBus;
@@ -452,7 +452,7 @@ class DeploymentFunctions {
         }
 
         @Override
-        public void onFailure(final Throwable context) {
+        public void onError(final Throwable context) {
             MessageEvent
                     .fire(eventBus, Message.error(resources.messages().deploymentOpFailed(files.getLength())));
         }
@@ -479,18 +479,18 @@ class DeploymentFunctions {
         if (files.getLength() > 0) {
 
             StringBuilder builder = new StringBuilder();
-            List<Function> functions = new ArrayList<>();
+            List<Consumer<Control<FunctionContext>>> tasks = new ArrayList<>();
 
             for (int i = 0; i < files.getLength(); i++) {
                 String filename = files.item(i).name;
                 builder.append(filename).append(" ");
-                functions.add(new CheckDeployment(dispatcher, filename));
-                functions.add(new UploadOrReplace(environment, dispatcher, filename, filename, files.item(i), false));
+                tasks.add(new CheckDeployment(dispatcher, filename));
+                tasks.add(new UploadOrReplace(environment, dispatcher, filename, filename, files.item(i), false));
             }
 
             logger.debug("About to upload / update {} file(s): {}", files.getLength(), builder.toString());
-            Async.series(progress.get(), new FunctionContext(), new UploadOutcome<>(column, eventBus, files, resources),
-                    functions.toArray(new Function[functions.size()]));
+            Async.series(progress.get(), new FunctionContext(), tasks)
+                    .subscribe(new UploadOutcome<>(column, eventBus, files, resources));
         }
     }
 
@@ -503,20 +503,20 @@ class DeploymentFunctions {
         if (files.getLength() > 0) {
 
             StringBuilder builder = new StringBuilder();
-            List<Function> functions = new ArrayList<>();
+            List<Consumer<Control<FunctionContext>>> tasks = new ArrayList<>();
 
             for (int i = 0; i < files.getLength(); i++) {
                 String filename = files.item(i).name;
                 builder.append(filename).append(" ");
-                functions.add(new CheckDeployment(dispatcher, filename));
-                functions.add(new UploadOrReplace(environment, dispatcher, filename, filename, files.item(i), false));
-                functions.add(new AddServerGroupDeployment(environment, dispatcher, filename, filename, serverGroup));
+                tasks.add(new CheckDeployment(dispatcher, filename));
+                tasks.add(new UploadOrReplace(environment, dispatcher, filename, filename, files.item(i), false));
+                tasks.add(new AddServerGroupDeployment(environment, dispatcher, filename, filename, serverGroup));
             }
 
             logger.debug("About to upload and deploy {} file(s): {} to server group {}",
                     files.getLength(), builder.toString(), serverGroup);
-            Async.series(progress.get(), new FunctionContext(), new UploadOutcome<>(column, eventBus, files, resources),
-                    functions.toArray(new Function[functions.size()]));
+            Async.series(progress.get(), new FunctionContext(), tasks).subscribe(
+                    new UploadOutcome<>(column, eventBus, files, resources));
         }
     }
 }

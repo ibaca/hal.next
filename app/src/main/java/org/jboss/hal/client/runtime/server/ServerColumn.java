@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
@@ -29,9 +30,8 @@ import com.gwtplatform.mvp.client.proxy.PlaceManager;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.client.runtime.BrowseByColumn;
 import org.jboss.hal.config.Environment;
@@ -77,6 +77,7 @@ import org.jboss.hal.resources.Resources;
 import org.jboss.hal.spi.Column;
 import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Requires;
+import rx.SingleSubscriber;
 
 import static elemental2.dom.DomGlobal.alert;
 import static elemental2.dom.DomGlobal.document;
@@ -172,7 +173,7 @@ public class ServerColumn extends FinderColumn<Server> implements ServerActionHa
         this.securityContextRegistry = securityContextRegistry;
 
         ItemsProvider<Server> itemsProvider = (context, callback) -> {
-            Function<FunctionContext> serverConfigsFn;
+            Consumer<Control<FunctionContext>> serverConfigsFn;
             boolean browseByHosts = BrowseByColumn.browseByHosts(context);
 
             if (browseByHosts) {
@@ -214,27 +215,28 @@ public class ServerColumn extends FinderColumn<Server> implements ServerActionHa
                 };
             }
 
-            Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
-                            @Override
-                            public void onFailure(final Throwable context1) {
-                                callback.onFailure(context1);
-                            }
-
-                            @Override
-                            public void onSuccess(final FunctionContext context1) {
-                                List<Server> servers = context1.get(TopologyFunctions.SERVERS);
-                                if (servers == null) {
-                                    servers = Collections.emptyList();
+            Async.series(progress.get(), new FunctionContext(), serverConfigsFn,
+                    new TopologyFunctions.TopologyStartedServers(environment, dispatcher)).subscribe(new SingleSubscriber<FunctionContext>() {
+                                @Override
+                                public void onError(final Throwable context1) {
+                                    callback.onFailure(context1);
                                 }
-                                callback.onSuccess(servers.stream().sorted(comparing(Server::getName))
-                                        .collect(toList()));
 
-                                // Restore pending servers visualization
-                                servers.stream()
-                                        .filter(serverActions::isPending)
-                                        .forEach(server -> ItemMonitor.startProgress(server.getId()));
-                            }
-                        }, serverConfigsFn, new TopologyFunctions.TopologyStartedServers(environment, dispatcher));
+                                @Override
+                                public void onSuccess(final FunctionContext context1) {
+                                    List<Server> servers = context1.get(TopologyFunctions.SERVERS);
+                                    if (servers == null) {
+                                        servers = Collections.emptyList();
+                                    }
+                                    callback.onSuccess(servers.stream().sorted(comparing(Server::getName))
+                                            .collect(toList()));
+
+                                    // Restore pending servers visualization
+                                    servers.stream()
+                                            .filter(serverActions::isPending)
+                                            .forEach(server -> ItemMonitor.startProgress(server.getId()));
+                                }
+                            });
         };
         setItemsProvider(itemsProvider);
 

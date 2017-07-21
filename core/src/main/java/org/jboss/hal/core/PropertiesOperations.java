@@ -30,12 +30,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.dmr.Composite;
@@ -82,7 +82,7 @@ import org.jboss.hal.spi.MessageEvent;
  */
 public class PropertiesOperations {
 
-    private static class ReadProperties implements Function<FunctionContext> {
+    private static class ReadProperties implements Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final ResourceAddress address;
@@ -114,7 +114,7 @@ public class PropertiesOperations {
         }
     }
 
-    private static class MergeProperties implements Function<FunctionContext> {
+    private static class MergeProperties implements Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final ResourceAddress address;
@@ -346,20 +346,7 @@ public class PropertiesOperations {
             Composite operations, String psr, Map<String, String> properties, Callback callback) {
 
         // TODO Check if the functions can be replaced with a composite operation
-
-        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                    @Override
-                    public void onSuccess(final FunctionContext context) {
-                        if (name == null) {
-                            MessageEvent.fire(eventBus,
-                                    Message.success(resources.messages().modifySingleResourceSuccess(type)));
-                        } else {
-                            MessageEvent.fire(eventBus,
-                                    Message.success(resources.messages().modifyResourceSuccess(type, name)));
-                        }
-                        callback.execute();
-                    }
-                },
+        Async.series(progress.get(), new FunctionContext(),
                 control -> {
                     if (operations.isEmpty()) {
                         control.proceed();
@@ -369,6 +356,18 @@ public class PropertiesOperations {
                     }
                 },
                 new ReadProperties(dispatcher, address, psr),
-                new MergeProperties(dispatcher, address, psr, properties));
+                new MergeProperties(dispatcher, address, psr, properties)
+        ).subscribe(new SuccessfulOutcome(eventBus, resources) {
+            @Override public void onSuccess(final FunctionContext context) {
+                if (name == null) {
+                    MessageEvent.fire(eventBus,
+                            Message.success(resources.messages().modifySingleResourceSuccess(type)));
+                } else {
+                    MessageEvent.fire(eventBus,
+                            Message.success(resources.messages().modifyResourceSuccess(type, name)));
+                }
+                callback.execute();
+            }
+        });
     }
 }

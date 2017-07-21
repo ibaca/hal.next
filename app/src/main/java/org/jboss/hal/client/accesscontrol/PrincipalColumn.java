@@ -18,13 +18,14 @@ package org.jboss.hal.client.accesscontrol;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import javax.inject.Provider;
 
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.web.bindery.event.shared.EventBus;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.autocomplete.StaticAutoComplete;
@@ -213,26 +214,25 @@ class PrincipalColumn extends FinderColumn<Principal> {
     }
 
     private void addPrincipal(final Principal.Type type, final String name, final ModelNode model) {
-        List<Function<FunctionContext>> functions = new ArrayList<>();
-        collectFunctions(functions, type, name, true, model, INCLUDE);
-        collectFunctions(functions, type, name, false, model, EXCLUDE);
-        if (!functions.isEmpty()) {
-            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                String typeName = type == Principal.Type.USER
-                                        ? resources.constants().user()
-                                        : resources.constants().group();
-                                MessageEvent.fire(eventBus, Message.success(resources.messages()
-                                        .addResourceSuccess(typeName, name)));
-                                accessControl.reload(() -> refresh(Ids.principal(type.name().toLowerCase(), name)));
-                            }
-                        },
-                    functions.toArray(new Function[functions.size()]));
+        List<Consumer<Control<FunctionContext>>> tasks = new ArrayList<>();
+        collectFunctions(tasks, type, name, true, model, INCLUDE);
+        collectFunctions(tasks, type, name, false, model, EXCLUDE);
+        if (!tasks.isEmpty()) {
+            Async.series(progress.get(), new FunctionContext(), tasks)
+                    .subscribe(new SuccessfulOutcome(eventBus, resources) {
+                        @Override public void onSuccess(FunctionContext n) {
+                            String typeName = type == Principal.Type.USER
+                                    ? resources.constants().user()
+                                    : resources.constants().group();
+                            MessageEvent.fire(eventBus, Message.success(resources.messages()
+                                    .addResourceSuccess(typeName, name)));
+                            accessControl.reload(() -> refresh(Ids.principal(type.name().toLowerCase(), name)));
+                        }
+                    });
         }
     }
 
-    private void collectFunctions(List<Function<FunctionContext>> functions, Principal.Type type, String name,
+    private void collectFunctions(List<Consumer<Control<FunctionContext>>> functions, Principal.Type type, String name,
             boolean include, ModelNode modelNode, String attribute) {
         String realm = modelNode.hasDefined(REALM) ? modelNode.get(REALM).asString() : null;
         String resourceName = Principal.buildResourceName(type, name, realm);

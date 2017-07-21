@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.hal.config.Environment;
 import org.jboss.hal.core.CrudOperations;
@@ -56,7 +55,8 @@ class JdbcDriverFunctions {
      * Reads the JDBC drivers from {@code /{selected.profile}/subsystem=datasource/jdbc-driver=*} and puts the result
      * as {@code List<JdbcDriver>} under the key {@link JdbcDriverFunctions#CONFIGURATION_DRIVERS} into the context.
      */
-    static class ReadConfiguration implements Function<FunctionContext> {
+    static class ReadConfiguration implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final CrudOperations crud;
 
@@ -83,7 +83,7 @@ class JdbcDriverFunctions {
      * operation. Stores the result as {@code List<JdbcDriver>} under the key {@link
      * JdbcDriverFunctions#RUNTIME_DRIVERS} into the context.
      */
-    static class ReadRuntime implements Function<FunctionContext> {
+    static class ReadRuntime implements java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Environment environment;
         private final Dispatcher dispatcher;
@@ -144,7 +144,8 @@ class JdbcDriverFunctions {
      * Stores the result as {@code List<JdbcDriver>} under the key {@link JdbcDriverFunctions#DRIVERS} into the
      * context.
      */
-    static class CombineDriverResults implements Function<FunctionContext> {
+    static class CombineDriverResults implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         @Override
         public void accept(final Control<FunctionContext> control) {

@@ -43,7 +43,6 @@ import org.jboss.gwt.elemento.core.EventCallbackFn;
 import org.jboss.gwt.elemento.core.builder.HtmlContentBuilder;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.client.runtime.server.ServerStatusSwitch;
 import org.jboss.hal.config.Environment;
@@ -89,6 +88,7 @@ import org.jboss.hal.resources.Resources;
 import org.jboss.hal.resources.UIConstants;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
+import rx.SingleSubscriber;
 
 import static com.google.common.collect.Lists.asList;
 import static elemental2.dom.DomGlobal.clearTimeout;
@@ -286,9 +286,10 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
         // show the loading indicator if the dmr operation takes too long
         double timeoutHandle = setTimeout((o) -> Elements.setVisible(loadingSection, true),
                 UIConstants.MEDIUM_TIMEOUT);
-        Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+        Async.series(progress.get(), new FunctionContext(), new TopologyFunctions.Topology(environment, dispatcher),
+                new TopologyFunctions.TopologyStartedServers(environment, dispatcher)).subscribe(new SingleSubscriber<FunctionContext>() {
                     @Override
-                    public void onFailure(final Throwable context) {
+                    public void onError(final Throwable context) {
                         clearTimeout(timeoutHandle);
                         Elements.setVisible(loadingSection, false);
                         MessageEvent.fire(eventBus,
@@ -329,15 +330,17 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
                                     .ifPresent(server11 -> serverDetails(server11));
                         }
                     }
-                },
-                new TopologyFunctions.Topology(environment, dispatcher),
-                new TopologyFunctions.TopologyStartedServers(environment, dispatcher));
+                });
     }
 
     private void updateServer(Server server) {
-        Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
+        Async.series(progress.get(), new FunctionContext(),
+                new TopologyFunctions.HostWithServerConfigs(server.getHost(), dispatcher),
+                new TopologyFunctions.HostStartedServers(dispatcher),
+                new TopologyFunctions.ServerGroupWithServerConfigs(server.getServerGroup(), dispatcher),
+                new TopologyFunctions.ServerGroupStartedServers(dispatcher)).subscribe(new SingleSubscriber<FunctionContext>() {
                     @Override
-                    public void onFailure(final Throwable context) {
+                    public void onError(final Throwable context) {
                         MessageEvent.fire(eventBus,
                                 Message.error(resources.messages().updateServerError(server.getName()), context.getMessage()));
                     }
@@ -370,11 +373,7 @@ class TopologyPreview extends PreviewContent<StaticItem> implements HostActionHa
                                     updatedElement -> serverGroupDetails(serverGroup));
                         }
                     }
-                },
-                new TopologyFunctions.HostWithServerConfigs(server.getHost(), dispatcher),
-                new TopologyFunctions.HostStartedServers(dispatcher),
-                new TopologyFunctions.ServerGroupWithServerConfigs(server.getServerGroup(), dispatcher),
-                new TopologyFunctions.ServerGroupStartedServers(dispatcher));
+                });
     }
 
 

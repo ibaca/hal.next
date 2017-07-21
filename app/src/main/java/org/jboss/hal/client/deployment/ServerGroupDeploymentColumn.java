@@ -25,9 +25,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.web.bindery.event.shared.EventBus;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.JsHelper;
 import org.jboss.hal.ballroom.wizard.Wizard;
@@ -79,6 +77,7 @@ import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
 import org.jboss.hal.spi.Requires;
+import rx.SingleSubscriber;
 
 import static java.util.stream.Collectors.toList;
 import static org.jboss.hal.client.deployment.ContentColumn.CONTENT_ADDRESS;
@@ -161,23 +160,24 @@ public class ServerGroupDeploymentColumn extends FinderColumn<ServerGroupDeploym
 
         ItemsProvider<ServerGroupDeployment> itemsProvider = (context, callback) -> {
 
-            Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
-                            @Override
-                            public void onFailure(final Throwable context1) {
-                                callback.onFailure(context1);
-                            }
-
-                            @Override
-                            public void onSuccess(final FunctionContext context1) {
-                                List<ServerGroupDeployment> serverGroupDeployments = context1
-                                        .get(DeploymentFunctions.SERVER_GROUP_DEPLOYMENTS);
-                                callback.onSuccess(serverGroupDeployments);
-                            }
-                        },
+            Async.series(progress.get(), new FunctionContext(),
                     new ReadServerGroupDeployments(environment, dispatcher, statementContext.selectedServerGroup()),
                     new RunningServersQuery(environment, dispatcher,
                             new ModelNode().set(SERVER_GROUP, statementContext.selectedServerGroup())),
-                    new LoadDeploymentsFromRunningServer(environment, dispatcher));
+                    new LoadDeploymentsFromRunningServer(environment, dispatcher))
+                    .subscribe(new SingleSubscriber<FunctionContext>() {
+                        @Override
+                        public void onError(final Throwable context1) {
+                            callback.onFailure(context1);
+                        }
+
+                        @Override
+                        public void onSuccess(final FunctionContext context1) {
+                            List<ServerGroupDeployment> serverGroupDeployments = context1
+                                    .get(DeploymentFunctions.SERVER_GROUP_DEPLOYMENTS);
+                            callback.onSuccess(serverGroupDeployments);
+                        }
+                    });
 
         };
         setItemsProvider(itemsProvider);
@@ -312,35 +312,35 @@ public class ServerGroupDeploymentColumn extends FinderColumn<ServerGroupDeploym
                     wzd.showProgress(resources.constants().deploymentInProgress(),
                             resources.messages().deploymentInProgress(name));
 
-                    Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
-                                            @Override
-                                            public void onFailure(final Throwable e) {
-                                                wzd.showError(resources.constants().deploymentError(),
-                                                        resources.messages().deploymentError(name), e.getMessage());
-                                            }
-
-                                            @Override
-                                            public void onSuccess(final FunctionContext functionContext) {
-                                                refresh(Ids.serverGroupDeployment(statementContext.selectedServerGroup(), name));
-                                                wzd.showSuccess(resources.constants().deploymentSuccessful(),
-                                                        resources.messages().deploymentSuccessful(name),
-                                                        resources.messages().view(Names.DEPLOYMENT),
-                                                        cxt -> { /* nothing to do, content is already selected */ });
-                                            }
-                                        },
-                            new CheckDeployment(dispatcher, name),
+                    Async.series(progress.get(), new FunctionContext(), new CheckDeployment(dispatcher, name),
                             new UploadOrReplace(environment, dispatcher, name, runtimeName, context.file, false),
                             new AddServerGroupDeployment(environment, dispatcher, name, runtimeName,
-                                    statementContext.selectedServerGroup()));
+                                    statementContext.selectedServerGroup()))
+                            .subscribe(new SingleSubscriber<FunctionContext>() {
+                                @Override
+                                public void onError(final Throwable e) {
+                                    wzd.showError(resources.constants().deploymentError(),
+                                            resources.messages().deploymentError(name), e.getMessage());
+                                }
+
+                                @Override
+                                public void onSuccess(final FunctionContext functionContext) {
+                                    refresh(Ids.serverGroupDeployment(statementContext.selectedServerGroup(), name));
+                                    wzd.showSuccess(resources.constants().deploymentSuccessful(),
+                                            resources.messages().deploymentSuccessful(name),
+                                            resources.messages().view(Names.DEPLOYMENT),
+                                            cxt -> { /* nothing to do, content is already selected */ });
+                                }
+                            });
                 })
                 .build();
         wizard.show();
     }
 
     private void addDeploymentFromContentRepository() {
-        Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
+        rx.SingleSubscriber<FunctionContext> outcome = new rx.SingleSubscriber<FunctionContext>() {
             @Override
-            public void onFailure(final Throwable context) {
+            public void onError(final Throwable context) {
                 MessageEvent.fire(eventBus, Message.error(resources.messages().loadContentError(), context.getMessage()));
             }
 
@@ -385,7 +385,7 @@ public class ServerGroupDeploymentColumn extends FinderColumn<ServerGroupDeploym
                 }
             }
         };
-        Async.single(progress.get(), new FunctionContext(), outcome, new LoadContent(dispatcher));
+        Async.single(progress.get(), new FunctionContext(), new LoadContent(dispatcher)).subscribe(outcome);
     }
 
     private void addUnmanaged() {
@@ -395,15 +395,19 @@ public class ServerGroupDeploymentColumn extends FinderColumn<ServerGroupDeploym
                     if (model != null) {
                         String serverGroup = statementContext.selectedServerGroup();
                         String runtimeName = model.get(RUNTIME_NAME).asString();
-                        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                                                    @Override
-                                                    public void onSuccess(final FunctionContext context) {
-                                                        refresh(Ids.serverGroupDeployment(serverGroup, name));
-                                                        MessageEvent.fire(eventBus, Message.success(resources.messages()
-                                                                .addResourceSuccess(Names.UNMANAGED_DEPLOYMENT, name)));
-                                                    }
-                                                }, new AddUnmanagedDeployment(dispatcher, name, model),
-                                new AddServerGroupDeployment(environment, dispatcher, name, runtimeName, serverGroup));
+                        Async.series(progress.get(), new FunctionContext(),
+                                new AddUnmanagedDeployment(dispatcher, name, model),
+                                new AddServerGroupDeployment(environment, dispatcher, name, runtimeName, serverGroup))
+                                .subscribe(
+                                        new SuccessfulOutcome(eventBus, resources) {
+                                            @Override
+                                            public void onSuccess(final FunctionContext context) {
+                                                refresh(Ids
+                                                        .serverGroupDeployment(serverGroup, name));
+                                                MessageEvent.fire(eventBus, Message.success(resources.messages()
+                                                        .addResourceSuccess(Names.UNMANAGED_DEPLOYMENT, name)));
+                                            }
+                                        });
                     }
                 });
         dialog.show();

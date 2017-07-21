@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.hal.config.Role;
 import org.jboss.hal.dmr.ModelNode;
@@ -59,7 +58,8 @@ final class AccessControlFunctions {
      * Adds a role mapping for a given role if the predicate returns {@code true}, proceeds otherwise.
      * Expects an integer status code at the top of the context stack which is used to call the predicate.
      */
-    static class AddRoleMapping implements Function<FunctionContext> {
+    static class AddRoleMapping implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final Role role;
@@ -93,7 +93,8 @@ final class AccessControlFunctions {
      * Modifies the include-all flag of a role-mapping. Please make sure that the role-mapping exists before using this
      * function. Use a combination of {@link CheckRoleMapping} and {@link AddRoleMapping} to do so.
      */
-    static class ModifyIncludeAll implements Function<FunctionContext> {
+    static class ModifyIncludeAll implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final Role role;
@@ -120,7 +121,8 @@ final class AccessControlFunctions {
      * Removes a role mapping for a given role if the predicate returns {@code true}, proceeds otherwise.
      * Expects an integer status code at the top of the context stack which is used to call the predicate.
      */
-    static class RemoveRoleMapping implements Function<FunctionContext> {
+    static class RemoveRoleMapping implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final Role role;
@@ -154,7 +156,8 @@ final class AccessControlFunctions {
      * Adds an assignment to a role-mapping. Please make sure that the role-mapping exists before using this function.
      * Use a combination of {@link CheckRoleMapping} and {@link AddRoleMapping} to do so.
      */
-    static class AddAssignment implements Function<FunctionContext> {
+    static class AddAssignment implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final Role role;
@@ -187,7 +190,8 @@ final class AccessControlFunctions {
      * Removes assignments from a role-mapping. Please make sure that the role-mapping exists before using this
      * function. Use a combination of {@link CheckRoleMapping} and {@link AddRoleMapping} to do so.
      */
-    static class RemoveAssignments implements Function<FunctionContext> {
+    static class RemoveAssignments implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final List<Assignment> assignments;
@@ -222,7 +226,8 @@ final class AccessControlFunctions {
     /**
      * Adds a scoped role.
      */
-    static class AddScopedRole implements Function<FunctionContext> {
+    static class AddScopedRole implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final Role.Type type;
@@ -250,7 +255,8 @@ final class AccessControlFunctions {
     /**
      * Modifies a scoped role.
      */
-    static class ModifyScopedRole implements Function<FunctionContext> {
+    static class ModifyScopedRole implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final Role role;
@@ -277,7 +283,8 @@ final class AccessControlFunctions {
     /**
      * Removes a scoped role.
      */
-    static class RemoveScopedRole implements Function<FunctionContext> {
+    static class RemoveScopedRole implements
+            java.util.function.Consumer<Control<FunctionContext>> {
 
         private final Dispatcher dispatcher;
         private final Role role;

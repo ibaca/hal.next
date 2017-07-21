@@ -26,9 +26,7 @@ import com.gwtplatform.mvp.client.annotations.ProxyStandard;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.HasTitle;
 import org.jboss.hal.core.mvp.ApplicationPresenter;
@@ -133,11 +131,11 @@ public class MacroEditorPresenter
     }
 
     void play(Macro macro) {
-        List<MacroOperationFunction> functions = macro.getOperations().stream()
+        List<MacroOperationFunction> tasks = macro.getOperations().stream()
                 .map(operation -> new MacroOperationFunction(dispatcher, operation)).collect(toList());
-        Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
+        rx.SingleSubscriber<FunctionContext> outcome = new rx.SingleSubscriber<FunctionContext>() {
             @Override
-            public void onFailure(final Throwable context) {
+            public void onError(final Throwable context) {
                 getView().enableMacro(macro);
                 MessageEvent
                         .fire(getEventBus(),
@@ -151,7 +149,7 @@ public class MacroEditorPresenter
             }
         };
         getView().disableMacro(macro);
-        Async.series(progress.get(), new FunctionContext(), outcome, functions.toArray(new Function[functions.size()]));
+        Async.series(progress.get(), new FunctionContext(), tasks).subscribe(outcome);
     }
 
     void rename(Macro macro) {

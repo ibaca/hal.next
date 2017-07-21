@@ -15,18 +15,36 @@
  */
 package org.jboss.hal.client.deployment;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Provider;
+import static java.util.stream.Collectors.toList;
+import static org.jboss.gwt.elemento.core.Elements.span;
+import static org.jboss.hal.client.deployment.StandaloneDeploymentColumn.DEPLOYMENT_ADDRESS;
+import static org.jboss.hal.client.deployment.wizard.UploadState.NAMES;
+import static org.jboss.hal.client.deployment.wizard.UploadState.UPLOAD;
+import static org.jboss.hal.core.finder.FinderColumn.RefreshMode.RESTORE_SELECTION;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.ADD;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.CHILD_TYPE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.DEPLOY;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.DEPLOYMENT;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.DISABLED;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.ENABLED;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.EXPLODE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.INCLUDE_RUNTIME;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.READ_CHILDREN_RESOURCES_OPERATION;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.RECURSIVE_DEPTH;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.UNDEPLOY;
+import static org.jboss.hal.resources.CSS.fontAwesome;
+import static org.jboss.hal.resources.CSS.pfIcon;
+import static org.jboss.hal.resources.Names.UNMANAGED_DEPLOYMENT;
 
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.web.bindery.event.shared.EventBus;
 import elemental2.dom.HTMLElement;
+import java.util.ArrayList;
+import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.JsHelper;
 import org.jboss.hal.ballroom.wizard.Wizard;
@@ -67,16 +85,7 @@ import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
 import org.jboss.hal.spi.Requires;
-
-import static java.util.stream.Collectors.toList;
-import static org.jboss.gwt.elemento.core.Elements.span;
-import static org.jboss.hal.client.deployment.StandaloneDeploymentColumn.DEPLOYMENT_ADDRESS;
-import static org.jboss.hal.client.deployment.wizard.UploadState.NAMES;
-import static org.jboss.hal.client.deployment.wizard.UploadState.UPLOAD;
-import static org.jboss.hal.core.finder.FinderColumn.RefreshMode.RESTORE_SELECTION;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.*;
-import static org.jboss.hal.resources.CSS.fontAwesome;
-import static org.jboss.hal.resources.CSS.pfIcon;
+import rx.SingleSubscriber;
 
 /**
  * Column used in standalone mode to manage deployments.
@@ -145,7 +154,7 @@ public class StandaloneDeploymentColumn extends FinderColumn<Deployment> {
                 .constraint(Constraint.executable(DEPLOYMENT_TEMPLATE, ADD))
                 .build());
         addActions.add(new ColumnAction.Builder<Deployment>(Ids.DEPLOYMENT_UNMANAGED_ADD)
-                .title(resources.messages().addResourceTitle(Names.UNMANAGED_DEPLOYMENT))
+                .title(resources.messages().addResourceTitle(UNMANAGED_DEPLOYMENT))
                 .handler(column -> addUnmanaged())
                 .constraint(Constraint.executable(DEPLOYMENT_TEMPLATE, ADD))
                 .build());
@@ -251,25 +260,24 @@ public class StandaloneDeploymentColumn extends FinderColumn<Deployment> {
                     wzd.showProgress(resources.constants().deploymentInProgress(),
                             resources.messages().deploymentInProgress(name));
 
-                    Async.series(progress.get(), new FunctionContext(), new Outcome<FunctionContext>() {
-                                            @Override
-                                            public void onFailure(final Throwable e) {
-                                                wzd.showError(resources.constants().deploymentError(),
-                                                        resources.messages().deploymentError(name), e.getMessage());
-                                            }
-
-                                            @Override
-                                            public void onSuccess(final FunctionContext functionContext) {
-                                                refresh(Ids.deployment(name));
-                                                wzd.showSuccess(resources.constants().uploadSuccessful(),
-                                                        resources.messages().uploadSuccessful(name),
-                                                        resources.messages().view(Names.DEPLOYMENT),
-                                                        cxt -> { /* nothing to do, deployment is already selected */ });
-                                            }
-                                        },
-                            new CheckDeployment(dispatcher, name),
+                    Async.series(progress.get(), new FunctionContext(), new CheckDeployment(dispatcher, name),
                             new UploadOrReplace(environment, dispatcher, name, runtimeName, context.file,
-                                    context.enabled));
+                                    context.enabled)).subscribe(new SingleSubscriber<FunctionContext>() {
+                        @Override
+                        public void onError(final Throwable e) {
+                            wzd.showError(resources.constants().deploymentError(),
+                                    resources.messages().deploymentError(name), e.getMessage());
+                        }
+
+                        @Override
+                        public void onSuccess(final FunctionContext functionContext) {
+                            refresh(Ids.deployment(name));
+                            wzd.showSuccess(resources.constants().uploadSuccessful(),
+                                    resources.messages().uploadSuccessful(name),
+                                    resources.messages().view(Names.DEPLOYMENT),
+                                    cxt -> { /* nothing to do, deployment is already selected */ });
+                        }
+                    });
                 })
                 .build();
         wizard.show();
@@ -277,17 +285,16 @@ public class StandaloneDeploymentColumn extends FinderColumn<Deployment> {
 
     private void addUnmanaged() {
         Metadata metadata = metadataRegistry.lookup(DEPLOYMENT_TEMPLATE);
-        AddUnmanagedDialog dialog = new AddUnmanagedDialog(metadata, resources,
-                (name, model) -> Async.single(progress.get(), new FunctionContext(),
-                        new SuccessfulOutcome(eventBus, resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                refresh(Ids.deployment(name));
-                                MessageEvent.fire(eventBus, Message.success(
-                                        resources.messages()
-                                                .addResourceSuccess(Names.UNMANAGED_DEPLOYMENT, name)));
-                            }
-                        }, new AddUnmanagedDeployment(dispatcher, name, model)));
+        AddUnmanagedDialog dialog = new AddUnmanagedDialog(metadata, resources, (name, model) -> {
+            Async.single(progress.get(), new FunctionContext(), new AddUnmanagedDeployment(dispatcher, name, model))
+                    .subscribe(new SuccessfulOutcome(eventBus, resources) {
+                        @Override public void onSuccess(FunctionContext n) {
+                            refresh(Ids.deployment(name));
+                            SafeHtml msg = resources.messages().addResourceSuccess(UNMANAGED_DEPLOYMENT, name);
+                            MessageEvent.fire(eventBus, Message.success(msg));
+                        }
+                    });
+        });
         dialog.show();
     }
 

@@ -25,7 +25,6 @@ import com.gwtplatform.mvp.client.annotations.NameToken;
 import com.gwtplatform.mvp.client.annotations.ProxyCodeSplit;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.form.Form;
@@ -444,10 +443,9 @@ public class RemotingPresenter
      */
     private void failSafeCreatePolicy(String type, AddressTemplate securityTemplate, AddressTemplate policyTemplate,
             StatementContext statementContext) {
-
-        Function[] functions = new Function[]{
+        Async.series(progress.get(), new FunctionContext(),
                 new ResourceCheck(dispatcher, securityTemplate.resolve(statementContext)),
-                (Function<FunctionContext>) control -> {
+                control -> {
                     int status = control.getContext().pop();
                     if (status == 200) {
                         control.proceed();
@@ -457,19 +455,15 @@ public class RemotingPresenter
                         dispatcher.execute(operation, result -> control.proceed());
                     }
                 },
-                (Function<FunctionContext>) control -> {
+                control -> {
                     Operation operation = new Operation.Builder(policyTemplate.resolve(statementContext), ADD).build();
                     dispatcher.execute(operation, result -> control.proceed());
                 }
-        };
-
-        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
-                    @Override
-                    public void onSuccess(final FunctionContext context) {
-                        MessageEvent.fire(getEventBus(),
-                                Message.success(resources.messages().addSingleResourceSuccess(type)));
-                        reload();
-                    }
-                }, functions);
+        ).subscribe(new SuccessfulOutcome(getEventBus(), resources) {
+            @Override public void onSuccess(final FunctionContext context) {
+                MessageEvent.fire(getEventBus(), Message.success(resources.messages().addSingleResourceSuccess(type)));
+                reload();
+            }
+        });
     }
 }

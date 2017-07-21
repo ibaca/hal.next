@@ -16,7 +16,6 @@
 package org.jboss.hal.client.tools;
 
 import org.jboss.gwt.flow.Control;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.hal.dmr.dispatch.Dispatcher;
 import org.jboss.hal.dmr.Operation;
@@ -24,7 +23,7 @@ import org.jboss.hal.dmr.Operation;
 /**
  * @author Harald Pehl
  */
-class MacroOperationFunction implements Function<FunctionContext> {
+class MacroOperationFunction implements java.util.function.Consumer<Control<FunctionContext>> {
 
     private final Dispatcher dispatcher;
     private final Operation operation;

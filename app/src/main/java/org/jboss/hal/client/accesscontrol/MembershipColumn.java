@@ -15,6 +15,20 @@
  */
 package org.jboss.hal.client.accesscontrol;
 
+import static java.util.Collections.singletonList;
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+import static org.jboss.gwt.elemento.core.Elements.span;
+import static org.jboss.hal.client.accesscontrol.AddressTemplates.EXCLUDE_TEMPLATE;
+import static org.jboss.hal.client.accesscontrol.AddressTemplates.INCLUDE_TEMPLATE;
+import static org.jboss.hal.dmr.ModelDescriptionConstants.REMOVE;
+import static org.jboss.hal.resources.CSS.fontAwesome;
+
+import com.google.common.collect.Sets;
+import com.google.gwt.safehtml.shared.SafeHtml;
+import com.google.web.bindery.event.shared.EventBus;
+import elemental2.dom.HTMLElement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,11 +36,6 @@ import java.util.Set;
 import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 import javax.inject.Provider;
-
-import com.google.common.collect.Sets;
-import com.google.gwt.safehtml.shared.SafeHtml;
-import com.google.web.bindery.event.shared.EventBus;
-import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
@@ -55,16 +64,6 @@ import org.jboss.hal.spi.AsyncColumn;
 import org.jboss.hal.spi.Footer;
 import org.jboss.hal.spi.Message;
 import org.jboss.hal.spi.MessageEvent;
-
-import static java.util.Collections.singletonList;
-import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
-import static org.jboss.gwt.elemento.core.Elements.span;
-import static org.jboss.hal.client.accesscontrol.AddressTemplates.EXCLUDE_TEMPLATE;
-import static org.jboss.hal.client.accesscontrol.AddressTemplates.INCLUDE_TEMPLATE;
-import static org.jboss.hal.dmr.ModelDescriptionConstants.REMOVE;
-import static org.jboss.hal.resources.CSS.fontAwesome;
 
 /**
  * Shows the members (principals) of the selected role (the reverse of the {@link AssignmentColumn}.
@@ -247,27 +246,28 @@ public class MembershipColumn extends FinderColumn<Assignment> {
         return column -> {
             Role role = findRole(getFinder().getContext().getPath());
             if (role != null) {
-                Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(eventBus, resources) {
-                                    @Override
-                                    public void onSuccess(final FunctionContext context) {
-                                        String type = principal.getType() == Principal.Type.USER
-                                                ? resources.constants().user()
-                                                : resources.constants().group();
-                                        SafeHtml message = include
-                                                ? resources.messages().assignmentIncludeSuccess(type, principal.getName())
-                                                : resources.messages().assignmentExcludeSuccess(type, principal.getName());
-                                        MessageEvent.fire(eventBus, Message.success(message));
-                                        accessControl.reload(() -> {
-                                            refresh(RefreshMode.RESTORE_SELECTION);
-                                            if (isCurrentUser(principal)) {
-                                                eventBus.fireEvent(new UserChangedEvent());
-                                            }
-                                        });
-                                    }
-                                },
+                Async.series(progress.get(), new FunctionContext(),
                         new CheckRoleMapping(dispatcher, role),
                         new AddRoleMapping(dispatcher, role, status -> status == 404),
-                        new AddAssignment(dispatcher, role, principal, include));
+                        new AddAssignment(dispatcher, role, principal, include)
+                ).subscribe(new SuccessfulOutcome(eventBus, resources) {
+                    @Override
+                    public void onSuccess(final FunctionContext context) {
+                        String type = principal.getType() == Principal.Type.USER
+                                ? resources.constants().user()
+                                : resources.constants().group();
+                        SafeHtml message = include
+                                ? resources.messages().assignmentIncludeSuccess(type, principal.getName())
+                                : resources.messages().assignmentExcludeSuccess(type, principal.getName());
+                        MessageEvent.fire(eventBus, Message.success(message));
+                        accessControl.reload(() -> {
+                            refresh(RefreshMode.RESTORE_SELECTION);
+                            if (isCurrentUser(principal)) {
+                                eventBus.fireEvent(new UserChangedEvent());
+                            }
+                        });
+                    }
+                });
             }
         };
     }

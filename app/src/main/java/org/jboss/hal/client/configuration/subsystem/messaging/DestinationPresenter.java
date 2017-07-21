@@ -42,10 +42,11 @@ import com.gwtplatform.mvp.client.annotations.ProxyCodeSplit;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.dialog.DialogFactory;
@@ -191,7 +192,7 @@ public class DestinationPresenter
                     .resolve(statementContext);
 
             ResourceCheck check = new ResourceCheck(dispatcher, securitySettingAddress);
-            Function<FunctionContext> add = control -> {
+            Consumer<Control<FunctionContext>> add = control -> {
                 Operation addSecuritySetting = new Operation.Builder(securitySettingAddress, ADD).build();
                 Operation addRole = new Operation.Builder(roleAddress, ADD).payload(model).build();
 
@@ -204,14 +205,15 @@ public class DestinationPresenter
                 }
             };
 
-            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
-                @Override
-                public void onSuccess(final FunctionContext context) {
-                    MessageEvent.fire(getEventBus(), Message.success(resources.messages()
-                            .addResourceSuccess(Names.SECURITY_SETTING, pattern + "/" + name)));
-                    reload();
-                }
-            }, check, add);
+            Async.series(progress.get(), new FunctionContext(), check, add).subscribe(
+                    new SuccessfulOutcome(getEventBus(), resources) {
+                        @Override
+                        public void onSuccess(final FunctionContext context) {
+                            MessageEvent.fire(getEventBus(), Message.success(resources.messages()
+                                    .addResourceSuccess(Names.SECURITY_SETTING, pattern + "/" + name)));
+                            reload();
+                        }
+                    });
         }).show();
     }
 
@@ -259,7 +261,7 @@ public class DestinationPresenter
                     resources.messages().removeConfirmationTitle(Names.SECURITY_SETTING),
                     resources.messages().removeConfirmationQuestion(combinedName),
                     () -> {
-                        Function<FunctionContext> removeRole = control -> {
+                        Consumer<Control<FunctionContext>> removeRole = control -> {
                             ResourceAddress address = SELECTED_SERVER_TEMPLATE
                                     .append(SECURITY_SETTING + "=" + securitySetting)
                                     .append(ROLE + "=" + roleName)
@@ -268,7 +270,7 @@ public class DestinationPresenter
                             dispatcher.executeInFunction(control, operation, result -> control.proceed());
                         };
 
-                        Function<FunctionContext> readRemainingRoles = control -> {
+                        Consumer<Control<FunctionContext>> readRemainingRoles = control -> {
                             ResourceAddress address = SELECTED_SERVER_TEMPLATE
                                     .append(SECURITY_SETTING + "=" + securitySetting)
                                     .resolve(statementContext);
@@ -281,7 +283,7 @@ public class DestinationPresenter
                             });
                         };
 
-                        Function<FunctionContext> removeSecuritySetting = control -> {
+                        Consumer<Control<FunctionContext>> removeSecuritySetting = control -> {
                             List<ModelNode> roles = control.getContext().pop();
                             if (roles.isEmpty()) {
                                 ResourceAddress address = SELECTED_SERVER_TEMPLATE
@@ -295,15 +297,17 @@ public class DestinationPresenter
                         };
 
                         Async.series(progress.get(), new FunctionContext(),
-                                new SuccessfulOutcome(getEventBus(), resources) {
-                                    @Override
-                                    public void onSuccess(final FunctionContext context) {
-                                        MessageEvent.fire(getEventBus(), Message.success(resources.messages()
-                                                .removeResourceSuccess(Names.SECURITY_SETTING, combinedName)));
-                                        reload();
-                                    }
-                                },
-                                removeRole, readRemainingRoles, removeSecuritySetting);
+                                removeRole,
+                                readRemainingRoles,
+                                removeSecuritySetting
+                        ).subscribe(new SuccessfulOutcome(getEventBus(), resources) {
+                            @Override
+                            public void onSuccess(final FunctionContext context) {
+                                MessageEvent.fire(getEventBus(), Message.success(resources.messages()
+                                        .removeResourceSuccess(Names.SECURITY_SETTING, combinedName)));
+                                reload();
+                            }
+                        });
                     });
 
         } else {

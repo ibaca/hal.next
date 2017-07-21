@@ -26,7 +26,6 @@ import com.gwtplatform.mvp.client.annotations.NameToken;
 import com.gwtplatform.mvp.client.annotations.ProxyCodeSplit;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.core.CrudOperations;
@@ -130,15 +129,16 @@ public class JmxPresenter extends ApplicationFinderPresenter<JmxPresenter.MyView
         } else {
             changedValues.remove(HANDLER);
             Metadata metadata = metadataRegistry.lookup(AUDIT_LOG_TEMPLATE);
-            Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
-                            @Override
-                            public void onSuccess(final FunctionContext context) {
-                                reload();
-                            }
-                        },
+            Async.series(progress.get(), new FunctionContext(),
                     new HandlerFunctions.SaveAuditLog(dispatcher, statementContext, changedValues, metadata),
                     new HandlerFunctions.ReadHandlers(dispatcher, statementContext),
-                    new HandlerFunctions.MergeHandler(dispatcher, statementContext, new HashSet<>(handler)));
+                    new HandlerFunctions.MergeHandler(dispatcher, statementContext, new HashSet<>(handler))).subscribe(
+                    new SuccessfulOutcome(getEventBus(), resources) {
+                                @Override
+                                public void onSuccess(final FunctionContext context) {
+                                    reload();
+                                }
+                            });
         }
     }
 }

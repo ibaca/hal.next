@@ -30,9 +30,11 @@ import com.gwtplatform.mvp.client.annotations.ProxyCodeSplit;
 import com.gwtplatform.mvp.client.proxy.ProxyPlace;
 import com.gwtplatform.mvp.shared.proxy.PlaceRequest;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.jboss.gwt.flow.Async;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.form.Form;
@@ -185,28 +187,8 @@ public class SecurityDomainPresenter
         AddressTemplate singletonTemplate = SELECTED_SECURITY_DOMAIN_TEMPLATE.append(module.singleton);
 
         // then add the final resource
-        Async.series(progress.get(), new FunctionContext(), new SuccessfulOutcome(getEventBus(), resources) {
-                    @Override
-                    public void onSuccess(final FunctionContext context) {
-                        AddressTemplate metadataTemplate = SECURITY_DOMAIN_TEMPLATE
-                                .append(module.singleton)
-                                .append(module.resource + "=*");
-                        AddressTemplate selectionTemplate = SELECTED_SECURITY_DOMAIN_TEMPLATE
-                                .append(module.singleton)
-                                .append(module.resource + "=*");
-                        Metadata metadata = metadataRegistry.lookup(metadataTemplate);
-                        AddResourceDialog dialog = new AddResourceDialog(module.id,
-                                resources.messages().addResourceTitle(module.type),
-                                metadata,
-                                (name, modelNode) -> {
-                                    ResourceAddress address = selectionTemplate.resolve(statementContext, name);
-                                    crud.add(module.type, name, address, modelNode, (n, a) -> reload());
-                                });
-                        dialog.show();
-                    }
-                },
-                new ResourceCheck(dispatcher, singletonTemplate.resolve(statementContext)),
-                control -> {
+        Async.series(progress.get(), new FunctionContext(),
+                new ResourceCheck(dispatcher, singletonTemplate.resolve(statementContext)), control -> {
                     int status = control.getContext().pop();
                     if (status == 200) {
                         control.proceed();
@@ -215,7 +197,26 @@ public class SecurityDomainPresenter
                                 .build();
                         dispatcher.execute(operation, result -> control.proceed());
                     }
-                });
+                }
+        ).subscribe(new SuccessfulOutcome(getEventBus(), resources) {
+            @Override public void onSuccess(final FunctionContext context) {
+                AddressTemplate metadataTemplate = SECURITY_DOMAIN_TEMPLATE
+                        .append(module.singleton)
+                        .append(module.resource + "=*");
+                AddressTemplate selectionTemplate = SELECTED_SECURITY_DOMAIN_TEMPLATE
+                        .append(module.singleton)
+                        .append(module.resource + "=*");
+                Metadata metadata = metadataRegistry.lookup(metadataTemplate);
+                AddResourceDialog dialog = new AddResourceDialog(module.id,
+                        resources.messages().addResourceTitle(module.type),
+                        metadata,
+                        (name, modelNode) -> {
+                            ResourceAddress address = selectionTemplate.resolve(statementContext, name);
+                            crud.add(module.type, name, address, modelNode, (n, a) -> reload());
+                        });
+                dialog.show();
+            }
+        });
     }
 
     void saveModule(Form<NamedNode> form, Map<String, Object> changedValues, Module module) {

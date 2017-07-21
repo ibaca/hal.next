@@ -17,15 +17,15 @@ package org.jboss.hal.client.configuration.subsystem.datasource.wizard;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.inject.Provider;
 
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlUtils;
 import elemental2.dom.HTMLElement;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Function;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.wizard.WizardStep;
 import org.jboss.hal.config.Environment;
@@ -101,10 +101,10 @@ class TestStep extends WizardStep<Context, State> {
         Context context = wizard().getContext();
         DataSource dataSource = context.getDataSource();
 
-        List<Function<FunctionContext>> functions = new ArrayList<>();
+        List<Consumer<Control<FunctionContext>>> tasks = new ArrayList<>();
         if (!context.isCreated()) {
             // add data source
-            functions.add(control -> {
+            tasks.add(control -> {
                 ResourceAddress address = dataSource.isXa()
                         ? XA_DATA_SOURCE_TEMPLATE.resolve(statementContext, dataSource.getName())
                         : DATA_SOURCE_TEMPLATE.resolve(statementContext, dataSource.getName());
@@ -124,11 +124,11 @@ class TestStep extends WizardStep<Context, State> {
         }
 
         // check running server(s)
-        functions.add(new TopologyFunctions.RunningServersQuery(
+        tasks.add(new TopologyFunctions.RunningServersQuery(
                 environment, dispatcher, new ModelNode().set(PROFILE_NAME, statementContext.selectedProfile())));
 
         // test connection
-        functions.add(control -> {
+        tasks.add(control -> {
             List<Server> servers = control.getContext().get(TopologyFunctions.RUNNING_SERVERS);
             if (!servers.isEmpty()) {
                 Server server = servers.get(0);
@@ -153,23 +153,20 @@ class TestStep extends WizardStep<Context, State> {
             }
         });
 
-        FunctionContext context1 = new FunctionContext();
-        Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
-            @Override
-            public void onFailure(final Throwable e) {
-                String title = context1.get(WIZARD_TITLE);
-                SafeHtml text = context1.get(WIZARD_TEXT);
-                String error = context1.get(WIZARD_ERROR);
-                wizard().showError(title, text, error, false);
-            }
+        FunctionContext ctx = new FunctionContext();
+        Async.series(progress.get(), ctx, tasks)
+                .subscribe(new rx.SingleSubscriber<FunctionContext>() {
+                    @Override public void onError(Throwable e) {
+                        String title1 = ctx.get(WIZARD_TITLE);
+                        SafeHtml text = ctx.get(WIZARD_TEXT);
+                        String error = ctx.get(WIZARD_ERROR);
+                        wizard().showError(title1, text, error, false);
+                    }
 
-            @Override
-            public void onSuccess(final FunctionContext context) {
-                wizard().showSuccess(resources.constants().testConnectionSuccess(),
-                        resources.messages().testConnectionSuccess(dataSource.getName()), false);
-            }
-        };
-
-        Async.series(progress.get(), context1, outcome, functions.toArray(new Function[functions.size()]));
+                    @Override public void onSuccess(FunctionContext n) {
+                        wizard().showSuccess(resources.constants().testConnectionSuccess(),
+                                resources.messages().testConnectionSuccess(dataSource.getName()), false);
+                    }
+                });
     }
 }

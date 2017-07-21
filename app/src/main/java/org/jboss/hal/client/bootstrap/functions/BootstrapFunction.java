@@ -15,7 +15,6 @@
  */
 package org.jboss.hal.client.bootstrap.functions;
 
-import org.jboss.gwt.flow.Function;
 import org.jboss.gwt.flow.FunctionContext;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
@@ -26,7 +25,8 @@ import org.slf4j.LoggerFactory;
  *
  * @author Harald Pehl
  */
-public interface BootstrapFunction extends Function<FunctionContext> {
+public interface BootstrapFunction extends
+        java.util.function.Consumer<org.jboss.gwt.flow.Control<FunctionContext>> {
 
     @NonNls Logger logger = LoggerFactory.getLogger(BootstrapFunction.class);
 

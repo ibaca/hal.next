@@ -15,6 +15,7 @@
  */
 package org.jboss.hal.client.bootstrap;
 
+import java.util.function.Consumer;
 import javax.inject.Inject;
 
 import com.google.gwt.core.client.GWT;
@@ -22,8 +23,8 @@ import com.google.web.bindery.event.shared.EventBus;
 import com.gwtplatform.mvp.client.Bootstrapper;
 import com.gwtplatform.mvp.client.proxy.PlaceManager;
 import org.jboss.gwt.flow.Async;
+import org.jboss.gwt.flow.Control;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.client.bootstrap.endpoint.EndpointManager;
 import org.jboss.hal.client.bootstrap.functions.BootstrapFunctions;
@@ -74,9 +75,9 @@ public class HalBootstrapper implements Bootstrapper {
         elemental2.dom.Event event = new elemental2.dom.Event("halReady"); //NON-NLS
         window.dispatchEvent(event);
 
-        Outcome<FunctionContext> outcome = new Outcome<FunctionContext>() {
+        rx.SingleSubscriber<FunctionContext> outcome = new rx.SingleSubscriber<FunctionContext>() {
             @Override
-            public void onFailure(final Throwable context) {
+            public void onError(final Throwable context) {
                 LoadingPanel.get().off();
                 logger.error("Bootstrap error: {}", context.getMessage());
                 document.body.appendChild(BootstrapFailed.create(context.getMessage(), endpoints).asElement());
@@ -100,7 +101,7 @@ public class HalBootstrapper implements Bootstrapper {
 
         endpointManager.select(() -> {
             LoadingPanel.get().on();
-            Async.series(Progress.NOOP, new FunctionContext(), outcome, bootstrapFunctions.functions());
+            Async.series(Progress.NOOP, new FunctionContext(), bootstrapFunctions.functions()).subscribe(outcome);
         });
     }
 }

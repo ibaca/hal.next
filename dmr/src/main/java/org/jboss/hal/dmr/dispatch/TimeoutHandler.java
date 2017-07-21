@@ -15,13 +15,12 @@
  */
 package org.jboss.hal.dmr.dispatch;
 
+import static org.jboss.gwt.flow.Progress.NOOP;
 import static org.jboss.hal.dmr.dispatch.Dispatcher.NOOP_EXCEPTIONAL_CALLBACK;
 import static org.jboss.hal.dmr.dispatch.Dispatcher.NOOP_FAILED_CALLBACK;
 
 import java.util.function.Predicate;
 import org.jboss.gwt.flow.Async;
-import org.jboss.gwt.flow.Outcome;
-import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.dmr.Composite;
 import org.jboss.hal.dmr.CompositeResult;
 import org.jboss.hal.dmr.ModelNode;
@@ -29,6 +28,7 @@ import org.jboss.hal.dmr.Operation;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.SingleSubscriber;
 
 /**
  * Executes a DMR operation until a specific condition is met or a timeout occurs.
@@ -89,30 +89,27 @@ public class TimeoutHandler {
      * receives the result of the operation.
      */
     public void execute(final Operation operation, final Predicate<ModelNode> predicate, final Callback callback) {
-        Async.whilst(Progress.NOOP, new TimeoutContext(),
-                (context) -> !timeout(context) && !context.conditionSatisfied,
-                new Outcome<TimeoutContext>() {
-                    @Override
-                    public void onFailure(final Throwable context) {
-                        logger.error("Operation {} ran into an error: {}", operation.asCli());
-                        callback.onTimeout();
-                    }
+        Async.interval(NOOP, new TimeoutContext(),
+                PERIOD, context -> !timeout(context) && !context.conditionSatisfied,
+                control -> dispatcher.execute(operation, result -> {
+                    control.getContext().conditionSatisfied = predicate == null || predicate.test(result);
+                }, NOOP_FAILED_CALLBACK, NOOP_EXCEPTIONAL_CALLBACK)
+        ).subscribe(new SingleSubscriber<TimeoutContext>() {
+            @Override public void onError(final Throwable context) {
+                logger.error("Operation {} ran into an error: {}", operation.asCli());
+                callback.onTimeout();
+            }
 
-                    @Override
-                    public void onSuccess(final TimeoutContext context) {
-                        if (timeout(context)) {
-                            logger.warn("Operation {} ran into a timeout after {} seconds", operation.asCli(), timeout);
-                            callback.onTimeout();
-                        } else {
-                            callback.onSuccess();
-                        }
-                    }
-                },
-                control -> dispatcher.execute(operation,
-                        result -> control.getContext().conditionSatisfied = predicate == null || predicate.test(result),
-                        NOOP_FAILED_CALLBACK,
-                        NOOP_EXCEPTIONAL_CALLBACK),
-                PERIOD);
+            @Override public void onSuccess(final TimeoutContext context) {
+                if (timeout(context)) {
+                    logger.warn("Operation {} ran into a timeout after {} seconds", operation.asCli(), timeout);
+                    callback.onTimeout();
+                } else {
+                    callback.onSuccess();
+                }
+            }
+        });
+
     }
 
     /**
@@ -121,39 +118,34 @@ public class TimeoutHandler {
      */
     public void execute(final Composite composite, final Predicate<CompositeResult> predicate,
             final Callback callback) {
-        Async.whilst(Progress.NOOP, new TimeoutContext(),
-                (context) -> !timeout(context) && !context.conditionSatisfied,
-                new Outcome<TimeoutContext>() {
-                    @Override
-                    public void onFailure(final Throwable context) {
-                        logger.error("Composite operation {} ran into an error", composite.asCli());
-                        callback.onTimeout();
+        Async.interval(NOOP, new TimeoutContext(),
+                PERIOD, context -> !timeout(context) && !context.conditionSatisfied,
+                control -> dispatcher.execute(composite, (CompositeResult result) -> {
+                    if (predicate != null) {
+                        control.getContext().conditionSatisfied = predicate.test(result);
+                    } else {
+                        control.getContext().conditionSatisfied = result.stream()
+                                .map(stepResult -> !stepResult.isFailure())
+                                .allMatch(flag -> true);
                     }
+                }, NOOP_FAILED_CALLBACK, NOOP_EXCEPTIONAL_CALLBACK)
+        ).subscribe(new SingleSubscriber<TimeoutContext>() {
+            @Override public void onError(final Throwable context) {
+                logger.error("Composite operation {} ran into an error", composite.asCli());
+                callback.onTimeout();
+            }
 
-                    @Override
-                    public void onSuccess(final TimeoutContext context) {
-                        if (timeout(context)) {
-                            logger.warn("Composite operation {} ran into a timeout after {} seconds", composite.asCli(),
-                                    timeout);
-                            callback.onTimeout();
-                        } else {
-                            callback.onSuccess();
-                        }
-                    }
-                },
-                control -> dispatcher.execute(composite,
-                        (CompositeResult result) -> {
-                            if (predicate != null) {
-                                control.getContext().conditionSatisfied = predicate.test(result);
-                            } else {
-                                control.getContext().conditionSatisfied = result.stream()
-                                        .map(stepResult -> !stepResult.isFailure())
-                                        .allMatch(flag -> true);
-                            }
-                        },
-                        NOOP_FAILED_CALLBACK,
-                        NOOP_EXCEPTIONAL_CALLBACK),
-                PERIOD);
+            @Override public void onSuccess(final TimeoutContext context) {
+                if (timeout(context)) {
+                    logger.warn("Composite operation {} ran into a timeout after {} seconds", composite.asCli(),
+                            timeout);
+                    callback.onTimeout();
+                } else {
+                    callback.onSuccess();
+                }
+            }
+        });
+
     }
 
     private boolean timeout(TimeoutContext timeoutContext) {

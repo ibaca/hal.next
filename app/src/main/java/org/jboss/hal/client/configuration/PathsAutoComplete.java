@@ -19,7 +19,6 @@ import java.util.List;
 
 import org.jboss.gwt.flow.Async;
 import org.jboss.gwt.flow.FunctionContext;
-import org.jboss.gwt.flow.Outcome;
 import org.jboss.gwt.flow.Progress;
 import org.jboss.hal.ballroom.autocomplete.AutoComplete;
 import org.jboss.hal.ballroom.autocomplete.NamesResultProcessor;
@@ -39,6 +38,7 @@ import org.jboss.hal.meta.StatementContext;
 import org.jetbrains.annotations.NonNls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.SingleSubscriber;
 
 import static org.jboss.hal.dmr.ModelDescriptionConstants.CHILD_TYPE;
 import static org.jboss.hal.dmr.ModelDescriptionConstants.NAME;
@@ -72,28 +72,27 @@ public class PathsAutoComplete extends AutoComplete {
             operation = defaultOperation();
         } else {
             Async.single(Progress.NOOP, new FunctionContext(),
-                    new Outcome<FunctionContext>() {
-                        @Override
-                        public void onFailure(final Throwable context) {
-                            logger.error("Unable to update operation for paths type-ahead: " +
-                                    "Error reading running servers: {}", context.getMessage());
-                            operation = defaultOperation();
-                        }
-
-                        @Override
-                        public void onSuccess(final FunctionContext context) {
-                            List<Server> servers = context.get(TopologyFunctions.RUNNING_SERVERS);
-                            if (!servers.isEmpty() && servers.get(0).isStarted()) {
-                                operation = new Operation.Builder(servers.get(0).getServerAddress(),
-                                        READ_CHILDREN_NAMES_OPERATION
-                                ).param(CHILD_TYPE, "path").build();
-                            } else {
+                    new TopologyFunctions.RunningServersQuery(environment, dispatcher,
+                                new ModelNode().set(PROFILE_NAME, statementContext.selectedProfile()))).subscribe(new SingleSubscriber<FunctionContext>() {
+                            @Override
+                            public void onError(final Throwable context) {
+                                logger.error("Unable to update operation for paths type-ahead: " +
+                                        "Error reading running servers: {}", context.getMessage());
                                 operation = defaultOperation();
                             }
-                        }
-                    },
-                    new TopologyFunctions.RunningServersQuery(environment, dispatcher,
-                            new ModelNode().set(PROFILE_NAME, statementContext.selectedProfile())));
+
+                            @Override
+                            public void onSuccess(final FunctionContext context) {
+                                List<Server> servers = context.get(TopologyFunctions.RUNNING_SERVERS);
+                                if (!servers.isEmpty() && servers.get(0).isStarted()) {
+                                    operation = new Operation.Builder(servers.get(0).getServerAddress(),
+                                            READ_CHILDREN_NAMES_OPERATION
+                                    ).param(CHILD_TYPE, "path").build();
+                                } else {
+                                    operation = defaultOperation();
+                                }
+                            }
+                        });
         }
     }
 
