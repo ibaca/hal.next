@@ -39,8 +39,8 @@ public class Async {
     }
 
     public static <C> Single<C> single(Progress progress, C context, Consumer<Control<C>> task) {
-        progress.reset(1);
         return fromControl(context, task)
+                .doOnSubscribe(progress::reset)
                 .doOnSuccess(n -> progress.finish())
                 .doOnError(e -> progress.finish());
     }
@@ -52,8 +52,8 @@ public class Async {
 
     public static <C> Single<C> series(Progress progress, C context, Collection<? extends Consumer<Control<C>>> tasks) {
         assert !tasks.isEmpty();
-        progress.reset(tasks.size());
         return Observable.from(tasks)
+                .doOnSubscribe(() -> progress.reset(tasks.size()))
                 .concatMap(f -> fromControl(context, f).toObservable())
                 .doOnNext(n -> progress.tick())
                 .doOnTerminate(progress::finish)
@@ -63,8 +63,8 @@ public class Async {
 
     public static <C> Single<C> interval(Progress progress, C context, int interval, Predicate<C> until,
             Consumer<Control<C>> task) {
-        progress.reset();
         return Observable.interval(interval, TimeUnit.MILLISECONDS)
+                .doOnSubscribe(progress::reset)
                 .flatMapSingle(n -> fromControl(context, task))
                 .doOnNext(n -> progress.tick())
                 .doOnTerminate(progress::finish)
