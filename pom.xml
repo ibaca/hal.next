@@ -194,6 +194,20 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>net.ltgt.gwt.maven</groupId>
+                <artifactId>gwt-maven-plugin</artifactId>
+                <inherited>false</inherited>
+                <configuration>
+                    <devmodeArgs>
+                        <devmodeArg>-startupUrl</devmodeArg>
+                        <devmodeArg>hal/dev.html</devmodeArg>
+                        <devmodeArg>-generateJsInteropExports</devmodeArg>
+                    </devmodeArgs>
+                    <logLevel>${gwt.logLevel}</logLevel>
+                    <style>${gwt.style}</style>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
